@@ -7,39 +7,58 @@
     pyproject-nix.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs =
-    { nixpkgs, pyproject-nix, ... }:
-    let
-      system = "x86_64-linux";
-      pkgs = nixpkgs.legacyPackages.${system};
+  outputs = { nixpkgs, pyproject-nix, ... }:
+  let
+    systems = [
+      "x86_64-linux"
+      "aarch64-linux"
+      "x86_64-darwin"
+      "aarch64-darwin"
+    ];
 
-      python = pkgs.python3;
+    forEachSystem = nixpkgs.lib.genAttrs systems;
 
-      project = pyproject-nix.lib.project.loadPyproject {
-        projectRoot = ./.;
-      };
+  in {
+    packages = forEachSystem (system:
+      let
+        pkgs = nixpkgs.legacyPackages.${system};
+        python = pkgs.python3;
 
-      # attrs for buildPythonPackage
-      attrs = project.renderers.buildPythonPackage {
-        inherit python;
-      };
+        project = pyproject-nix.lib.project.loadPyproject {
+          projectRoot = ./.;
+        };
 
-      package = python.pkgs.buildPythonApplication attrs;
-      # buildPythonApplication ensures scripts are exposed properly
-    in
-    {
-      packages.${system}.default = package;
+        attrs = project.renderers.buildPythonPackage {
+          inherit python;
+        };
 
-      devShells.${system}.default =
-        let
-          arg = project.renderers.withPackages { inherit python; };
-          pythonEnv = python.withPackages arg;
-        in
-        pkgs.mkShell {
+        package = python.pkgs.buildPythonApplication attrs;
+
+      in {
+        default = package;
+      }
+    );
+
+    devShells = forEachSystem (system:
+      let
+        pkgs = nixpkgs.legacyPackages.${system};
+        python = pkgs.python3;
+
+        project = pyproject-nix.lib.project.loadPyproject {
+          projectRoot = ./.;
+        };
+
+        arg = project.renderers.withPackages { inherit python; };
+        pythonEnv = python.withPackages arg;
+
+      in {
+        default = pkgs.mkShell {
           packages = [
             pythonEnv
             pkgs.python3Packages.mypy
           ];
         };
-    };
+      }
+    );
+  };
 }
