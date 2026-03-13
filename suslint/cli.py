@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Iterable
 
 from suslint.rule import Rule
-from suslint.core import lint, load_rules
+from suslint.core import load_rules, lint_file
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -33,29 +33,6 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def lint_file(path: Path, rules: Iterable[Rule], quiet: bool) -> int:
-    if not path.exists():
-        print(f"error: file does not exist: {path}", file=sys.stderr)
-        return 1
-
-    issues = lint(path, rules)
-
-    if not issues:
-        if not quiet:
-            print(f"Success: no issues found in {path}")
-        return 0
-
-    print(f"{path}:")
-
-    for issue in issues:
-        if issue.location:
-            print(f"  {issue.rule_id} {issue.location}: {issue.message}")
-        else:
-            print(f"  {issue.rule_id}: {issue.message}")
-
-    return 1
-
-
 def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
@@ -64,8 +41,14 @@ def main() -> None:
     rules = load_rules()
 
     for path in args.files:
-        result = lint_file(path, rules, args.quiet)
-        exit_code = max(exit_code, result)
+        if not path.exists():
+            print(f"error: file does not exist: {path}", file=sys.stderr)
+            sys.exit(1)
+        result = lint_file(path, rules)
+        if result == 0 and not args.quiet:
+            print(f"Success: no issues found in {path}")
+        else:
+            exit_code = 1
 
     sys.exit(exit_code)
 

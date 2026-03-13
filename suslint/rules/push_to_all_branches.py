@@ -1,24 +1,19 @@
-from typing import Iterable
-from suslint.rule import Issue, Rule
-
-
-def get_workflow_triggers(workflow: dict[str, object]) -> dict[str, object]:
-    """
-    For some reason pyYaml replaces "on" with True.
-    """
-    return workflow.get("on", workflow.get(True, {}))
+from typing import Iterable, Any
+from ruamel.yaml.comments import CommentedMap
 
 
 class PushToAllBranches:
     id = "SUS002"
     description = "Workflows should be triggered only when necessary, not on all branches"
 
-    def check(self, workflow: dict[str, object]) -> Iterable[Issue]:
-        triggers = get_workflow_triggers(workflow)
+    def check(self, workflow: CommentedMap) -> Iterable[Issue]:
+        triggers = workflow.get("on")
+
+        push: Any
 
         if triggers == "push":
             push = True
-        elif not isinstance(triggers, dict):
+        elif not isinstance(triggers, CommentedMap):
             return
         else:
             push = triggers.get("push")
@@ -31,7 +26,7 @@ class PushToAllBranches:
         
         # It triggers on all branches if push is true or no branch filters specified
         if push is True or (
-            isinstance(push, dict)
+            isinstance(push, CommentedMap)
             and not push.get("branches")
             and not push.get("branches-ignore")
         ):
