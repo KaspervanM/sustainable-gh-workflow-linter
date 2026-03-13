@@ -1,0 +1,45 @@
+{
+  "nodes": {
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1773222311,
+        "narHash": "sha256-PIQOCh65JYWOp2t/Q+Yzdr3j65WoHQg6jdEqWIpC6ik=",
+        "rev": "0590cd39f728e129122770c029970378a79d076a",
+        "type": "tarball",
+        "url": "https://releases.nixos.org/nixos/25.11/nixos-25.11.7421.0590cd39f728/nixexprs.tar.xz"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "http://nixos.org/channels/nixos-25.11/nixexprs.tar.xz"
+      }
+    },
+    "pyproject-nix": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1773190977,
+        "narHash": "sha256-fkJvOxz80cJViPz6GVaayC8BVCs5fclJ8qHDaNUpoEA=",
+        "owner": "pyproject-nix",
+        "repo": "pyproject.nix",
+        "rev": "10ebca8a137bf26b7fbd3e94b339bf68cee18693",
+        "type": "github"
+      },
+      "original": {
+        "owner": "pyproject-nix",
+        "repo": "pyproject.nix",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "nixpkgs": "nixpkgs",
+        "pyproject-nix": "pyproject-nix"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}
