@@ -46,7 +46,7 @@ def lint_file(path: Path, rules: Iterable[Rule]) -> int:
 
     for issue in issues:
         if issue.location:
-            print(f"  {issue.rule_id} {issue.location}: {issue.message}")
+            print(f"  {issue.rule_id} {issue.location.trail} (line {issue.location.line}, col {issue.location.col}): {issue.message}")
         else:
             print(f"  {issue.rule_id}: {issue.message}")
 

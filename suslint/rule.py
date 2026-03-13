@@ -1,16 +1,23 @@
 from dataclasses import dataclass
+from ruamel.yaml.comments import CommentedMap
 from typing import Protocol, Iterable
 
+
+@dataclass
+class Location:
+    trail: str
+    line: int
+    col: int
 
 @dataclass
 class Issue:
     rule_id: str
     message: str
-    location: str | None = None
+    location: Location | None = None
 
 
 class Rule(Protocol):
     id: str
     description: str
 
-    def check(self, workflow: dict[str, object]) -> Iterable[Issue]: ...
+    def check(self, workflow: CommentedMap) -> Iterable[Issue]: ...
