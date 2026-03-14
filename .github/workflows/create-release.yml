@@ -1,0 +1,41 @@
+name: Create Release
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+      branch:
+        required: true
+        type: string
+      latest:
+        required: false
+        type: string
+    secrets:
+      token:
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    name: Create the Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.branch }}
+          fetch-depth: 0
+      - run: |
+          gh release create ${{ inputs.version }} --target ${{ inputs.branch }} --generate-notes --latest=false
+          if [ -n "${{ inputs.latest }}" ]; then
+            gh release edit ${{ inputs.version }} --latest
+          else
+            gh release edit ${{ inputs.version }} --prerelease
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.token }}

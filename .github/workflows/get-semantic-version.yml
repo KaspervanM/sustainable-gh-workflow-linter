@@ -1,0 +1,222 @@
+name: Get Semantic Version 
+
+on:
+  workflow_call:
+    inputs:
+      branch:
+        required: true
+        type: string
+    outputs:
+      version:
+        description: "The semantic version of the latest commit"
+        value: ${{ jobs.get-version.outputs.version }}
+      is-new:
+        description: "Whether this version is new compared to the previous version"
+        value: ${{ jobs.get-version.outputs.is-new }}
+
+permissions:
+  contents: read
+
+jobs:
+  get-version:
+    name: Get Semantic Version of Branch
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get-version.outputs.version }}
+      is-new: ${{ steps.get-version.outputs.is-new }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.branch }}
+          fetch-depth: 0
+      - name: Get Version
+        id: get-version
+        run: |
+          INPUT_BRANCH="${{ inputs.branch }}"
+          PRERELEASE_BRANCH=$([ "$INPUT_BRANCH" != "main" ] && echo "-$INPUT_BRANCH" || true)
+          RELEASE_TAGS=$(git tag --merged "$INPUT_BRANCH" | grep -E "^v[0-9]+\.[0-9]+\.[0-9]+$" || true)
+          MAIN_PRERELEASE_TAGS=$(git tag --merged "$INPUT_BRANCH" | grep -E "^v[0-9]+\.[0-9]+\.[0-9]+-pre-release\.[0-9]+$" || true)
+          PRERELEASE_TAGS=$(git tag --merged "$INPUT_BRANCH" | grep -E "^v[0-9]+\.[0-9]+\.[0-9]+$PRERELEASE_BRANCH\.[0-9]+$" || true)
+
+          if [ -n "$PRERELEASE_BRANCH" ]; then
+            echo "This workflow was run on a pre-release branch"
+          fi
+
+          # If no release version or main pre-release tags exist yet, create a v0.0.0-pre-release.1 if on release branch. If on pre-release branch,
+          # create only a new pre-release tag if no pre-release tags exist yet.
+          if [ -z "$RELEASE_TAGS" ]; then
+            if [ -z "$PRERELEASE_TAGS" ] && [ -n "$PRERELEASE_BRANCH" ]; then
+              echo "No release version tags, nor pre-release version tags exist yet."
+              echo "Creating version: v0.0.0$PRERELEASE_BRANCH.1"
+              echo "version=v0.0.0$PRERELEASE_BRANCH.1" >> $GITHUB_OUTPUT
+              echo "is-new=true" >> $GITHUB_OUTPUT
+              exit
+            elif [ -z "$MAIN_PRERELEASE_TAGS" ] && [ -z "$PRERELEASE_BRANCH" ]; then
+              echo "No release version tags, nor pre-release version tags on main exist yet."
+              echo "Creating version: v0.0.0-pre-release.1"
+              echo "version=v0.0.0-pre-release.1" >> $GITHUB_OUTPUT
+              echo "is-new=true" >> $GITHUB_OUTPUT
+              exit
+            fi
+          fi
+
+          LATEST_RELEASE=$(echo "$RELEASE_TAGS" | tail -1)
+          LATEST_MAIN_PRERELEASE=$(echo "$MAIN_PRERELEASE_TAGS" | tail -1)
+          LATEST_PRERELEASE=$(echo "$PRERELEASE_TAGS" | tail -1)
+
+          echo "Latest release version is '$LATEST_RELEASE', latest main pre-release version is '$LATEST_MAIN_PRERELEASE' and latest pre-release version on this branch is '$LATEST_PRERELEASE'."
+
+          # Isolate major, minor and patch versions from the latest (pre-)releases.
+          if [ -n "$LATEST_RELEASE" ]; then
+            CLEAN_LATEST_RELEASE=${LATEST_RELEASE#v}
+            IFS='.' read -r LATEST_RELEASE_MAJOR LATEST_RELEASE_MINOR LATEST_RELEASE_PATCH <<< "$CLEAN_LATEST_RELEASE"
+          else
+            LATEST_RELEASE_MAJOR=-1
+            LATEST_RELEASE_MINOR=-1
+            LATEST_RELEASE_PATCH=-1
+          fi
+
+          if [ -n "$PRERELEASE_BRANCH" ]; then
+            if [ -n "$LATEST_PRERELEASE" ]; then
+              CLEAN_LATEST_PRERELEASE=${LATEST_PRERELEASE#v}
+              CLEAN_LATEST_PRERELEASE=${CLEAN_LATEST_PRERELEASE%%-*}
+              IFS='.' read -r LATEST_PRERELEASE_MAJOR LATEST_PRERELEASE_MINOR LATEST_PRERELEASE_PATCH <<< "$CLEAN_LATEST_PRERELEASE"
+              LATEST_PRERELEASE_NR=$(echo "$LATEST_PRERELEASE" | sed -E "s/^v[0-9]+\.[0-9]+\.[0-9]+${PRERELEASE_BRANCH}\.([0-9]+)/\1/")
+            else
+              LATEST_PRERELEASE_MAJOR=-1
+              LATEST_PRERELEASE_MINOR=-1
+              LATEST_PRERELEASE_PATCH=-1
+            fi
+
+            ALREADY_GREATER_MAJOR=$([ "$LATEST_PRERELEASE_MAJOR" -gt "$LATEST_RELEASE_MAJOR" ] && echo "true" || true)
+            ALREADY_GREATER_MINOR=$([ "$LATEST_PRERELEASE_MINOR" -gt "$LATEST_RELEASE_MINOR" ] && echo "true" || true)
+            ALREADY_GREATER_PATCH=$([ "$LATEST_PRERELEASE_PATCH" -gt "$LATEST_RELEASE_PATCH" ] && echo "true" || true)
+
+            # Check if pre-release is outdated
+            if [ "$LATEST_PRERELEASE_MAJOR" -lt "$LATEST_RELEASE_MAJOR" ]; then
+              PRERELEASE_OUTDATED="true"
+            elif [ "$LATEST_PRERELEASE_MAJOR" -eq "$LATEST_RELEASE_MAJOR" ] && [ "$LATEST_PRERELEASE_MINOR" -lt "$LATEST_RELEASE_MINOR" ]; then
+              PRERELEASE_OUTDATED="true"
+            elif [ "$LATEST_PRERELEASE_MAJOR" -eq "$LATEST_RELEASE_MAJOR" ] && [ "$LATEST_PRERELEASE_MINOR" -eq "$LATEST_RELEASE_MINOR" ] && [ "$LATEST_PRERELEASE_PATCH" -lt "$LATEST_RELEASE_PATCH" ]; then
+              PRERELEASE_OUTDATED="true"
+            fi
+
+            if [ -n "$PRERELEASE_OUTDATED" ]; then
+              echo "The latest pre-release branch is older than the latest release branch. Commits from latest release version will be considered instead of latest pre-release version."
+            fi
+          fi
+
+          if [ -n "$LATEST_MAIN_PRERELEASE" ]; then
+            CLEAN_LATEST_MAIN_PRERELEASE=${LATEST_MAIN_PRERELEASE#v}
+            CLEAN_LATEST_MAIN_PRERELEASE=${CLEAN_LATEST_MAIN_PRERELEASE%%-*}
+            IFS='.' read -r LATEST_MAIN_PRERELEASE_MAJOR LATEST_MAIN_PRERELEASE_MINOR LATEST_MAIN_PRERELEASE_PATCH <<< "$CLEAN_LATEST_MAIN_PRERELEASE"
+            LATEST_MAIN_PRERELEASE_NR=$(echo "$LATEST_MAIN_PRERELEASE" | sed -E "s/^v[0-9]+\.[0-9]+\.[0-9]+-pre-release\.([0-9]+)/\1/")
+
+            ALREADY_GREATER_MAJOR_MAIN=$([ "$LATEST_MAIN_PRERELEASE_MAJOR" -gt "$LATEST_RELEASE_MAJOR" ] && echo "true" || true)
+            ALREADY_GREATER_MINOR_MAIN=$([ "$LATEST_MAIN_PRERELEASE_MINOR" -gt "$LATEST_RELEASE_MINOR" ] && echo "true" || true)
+            ALREADY_GREATER_PATCH_MAIN=$([ "$LATEST_MAIN_PRERELEASE_PATCH" -gt "$LATEST_RELEASE_PATCH" ] && echo "true" || true)
+
+            # Check if pre-release is outdated
+            if [ "$LATEST_MAIN_PRERELEASE_MAJOR" -lt "$LATEST_RELEASE_MAJOR" ]; then
+              MAIN_PRERELEASE_OUTDATED="true"
+            elif [ "$LATEST_MAIN_PRERELEASE_MAJOR" -eq "$LATEST_RELEASE_MAJOR" ] && [ "$LATEST_MAIN_PRERELEASE_MINOR" -lt "$LATEST_RELEASE_MINOR" ]; then
+              MAIN_PRERELEASE_OUTDATED="true"
+            elif [ "$LATEST_MAIN_PRERELEASE_MAJOR" -eq "$LATEST_RELEASE_MAJOR" ] && [ "$LATEST_MAIN_PRERELEASE_MINOR" -eq "$LATEST_RELEASE_MINOR" ] && [ "$LATEST_MAIN_PRERELEASE_PATCH" -lt "$LATEST_RELEASE_PATCH" ]; then
+              MAIN_PRERELEASE_OUTDATED="true"
+            fi
+
+            if [ -n "$MAIN_PRERELEASE_OUTDATED" ]; then
+              echo "The latest main pre-release is older than the latest release branch. Commits from latest release version will be considered instead of latest pre-release version."
+            fi
+          fi
+
+          if [ -n "$PRERELEASE_BRANCH" ] && [ -z "$PRERELEASE_OUTDATED" ]; then
+            COMMIT_OF_LATEST_RELEASE=$(git rev-parse "$LATEST_PRERELEASE")
+          elif [ -n "$LATEST_MAIN_PRERELEASE" ] && [ -z "$MAIN_PRERELEASE_OUTDATED" ]; then
+            COMMIT_OF_LATEST_RELEASE=$(git rev-parse "$LATEST_MAIN_PRERELEASE")
+          else
+            COMMIT_OF_LATEST_RELEASE=$(git rev-parse "$LATEST_RELEASE")
+          fi
+
+          COMMIT_MESSAGES_SINCE_LATEST_RELEASE=$(git log "$COMMIT_OF_LATEST_RELEASE..$INPUT_BRANCH" --pretty=format:"%B")
+          BREAKING_CHANGE_INTRODUCED=$(echo "$COMMIT_MESSAGES_SINCE_LATEST_RELEASE" | grep -E 'BREAKING CHANGE|^[^:]*!:' || true)
+          FEATURE_INTRODUCED=$(echo "$COMMIT_MESSAGES_SINCE_LATEST_RELEASE" | grep -E '^feat(\(.*\))?:' || true)
+          PATCH_INTRODUCED=$(echo "$COMMIT_MESSAGES_SINCE_LATEST_RELEASE" | grep -E '^(fix|perf)(\(.*\))?:' || true)
+
+          calculate_updated_version() {
+            local change_type=$1
+            local change_msg=$2
+
+            # Determine which version context we're in
+            if [ -n "$PRERELEASE_BRANCH" ]; then
+              local base_major=$LATEST_RELEASE_MAJOR
+              local base_minor=$LATEST_RELEASE_MINOR
+              local base_patch=$LATEST_RELEASE_PATCH
+              local current_major=$LATEST_PRERELEASE_MAJOR
+              local current_minor=$LATEST_PRERELEASE_MINOR
+              local current_patch=$LATEST_PRERELEASE_PATCH
+              local current_nr=$LATEST_PRERELEASE_NR
+              local suffix=$PRERELEASE_BRANCH
+            else
+              local base_major=$LATEST_RELEASE_MAJOR
+              local base_minor=$LATEST_RELEASE_MINOR
+              local base_patch=$LATEST_RELEASE_PATCH
+              local current_major=$LATEST_MAIN_PRERELEASE_MAJOR
+              local current_minor=$LATEST_MAIN_PRERELEASE_MINOR
+              local current_patch=$LATEST_MAIN_PRERELEASE_PATCH
+              local current_nr=$LATEST_MAIN_PRERELEASE_NR
+              local suffix="-pre-release"
+              local already_greater_suffix="_MAIN"
+            fi
+
+            local check_major="ALREADY_GREATER_MAJOR${already_greater_suffix}"
+            local check_minor="ALREADY_GREATER_MINOR${already_greater_suffix}"
+            local check_patch="ALREADY_GREATER_PATCH${already_greater_suffix}"
+
+            # Check if this level or higher is already bumped
+            local is_already_greater=""
+            case $change_type in
+              patch)
+                [ -n "${!check_patch}" ] || [ -n "${!check_minor}" ] || [ -n "${!check_major}" ] && is_already_greater="true"
+                ;;
+              minor)
+                [ -n "${!check_minor}" ] || [ -n "${!check_major}" ] && is_already_greater="true"
+                ;;
+              major)
+                [ -n "${!check_major}" ] && is_already_greater="true"
+                ;;
+            esac
+
+            if [ -z "$is_already_greater" ]; then
+              case $change_type in
+                major) NEW_VERSION="$((base_major + 1)).0.0" ;;
+                minor) NEW_VERSION="$base_major.$((base_minor + 1)).0" ;;
+                patch) NEW_VERSION="$base_major.$base_minor.$((base_patch + 1))" ;;
+              esac
+              NEW_NR=1
+            else
+              NEW_VERSION="$current_major.$current_minor.$current_patch"
+              NEW_NR=$((current_nr + 1))
+            fi
+
+            FINAL_VERSION="v$NEW_VERSION$suffix.$NEW_NR"
+            echo "version=$FINAL_VERSION" >> $GITHUB_OUTPUT
+            echo "is-new=true" >> $GITHUB_OUTPUT
+            echo "A $change_type change has been introduced: '$change_msg'"
+            echo "So, the new version is: $FINAL_VERSION"
+            exit
+          }
+
+          [ -n "$BREAKING_CHANGE_INTRODUCED" ] && calculate_updated_version "major" "$BREAKING_CHANGE_INTRODUCED"
+          [ -n "$FEATURE_INTRODUCED" ] && calculate_updated_version "minor" "$FEATURE_INTRODUCED"
+          [ -n "$PATCH_INTRODUCED" ] && calculate_updated_version "patch" "$PATCH_INTRODUCED"
+
+          if [ -n "$PRERELEASE_BRANCH" ]; then
+            echo "version=$LATEST_PRERELEASE" >> $GITHUB_OUTPUT
+          else
+            echo "version=$LATEST_MAIN_PRERELEASE" >> $GITHUB_OUTPUT
+          fi
+          echo "is-new=false" >> $GITHUB_OUTPUT
+          echo "No version-worthy changes occurred since previous version."

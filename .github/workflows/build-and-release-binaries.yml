@@ -1,0 +1,82 @@
+name: Build and Release Binaries
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+      branch:
+        required: true
+        type: string
+    secrets:
+      token:
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+        - system: x86_64-linux
+          os: ubuntu-latest
+        - system: aarch64-linux
+          os: ubuntu-latest
+        - system: x86_64-darwin
+          os: macos-26-intel
+        - system: arm64-darwin
+          os: macos-26
+        - system: x86_64-windows
+          os: windows-latest
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.branch || github.ref_name }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Cache pip packages
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install .
+          python -m pip install pyinstaller
+
+      - name: Build binary
+        shell: bash
+        run: |
+          pyinstaller --onefile --name suslint suslint/cli.py
+          mv dist/suslint dist/suslint-${{ matrix.system }}
+
+      - name: Ensure GitHub release exists
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.token }}
+        run: |
+          TAG="${{ inputs.version }}"
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG does not exist! Aborting."
+            exit 1
+          fi
+
+      - name: Upload binaries to release
+        env:
+          GH_TOKEN: ${{ secrets.token }}
+        run: |
+          gh release upload "${{ inputs.version }}" dist/* --clobber

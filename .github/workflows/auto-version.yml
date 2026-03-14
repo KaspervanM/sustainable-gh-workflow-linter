@@ -1,0 +1,39 @@
+name: Auto Version
+
+on:
+  push:
+    branches:
+      - 'main'
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  get-version:
+    uses: ./.github/workflows/get-semantic-version.yml
+    with:
+      branch: ${{ github.ref_name }}
+
+  release-version:
+    needs: 
+      - get-version
+    if: ${{ needs.get-version.outputs.is-new == 'true' }}
+    uses: ./.github/workflows/create-release.yml
+    with:
+      version: ${{ needs.get-version.outputs.version }}
+      branch: ${{ github.ref_name }}
+    secrets:
+      token: ${{ secrets.GITHUB_TOKEN }}
+  
+  build-and-release-binaries:
+    needs:
+      - get-version
+      - release-version
+    if: ${{ needs.get-version.outputs.is-new == 'true' }}
+    uses: ./.github/workflows/build-and-release-binaries.yml
+    with:
+      version: ${{ needs.get-version.outputs.version }}
+      branch: ${{ github.ref_name }}
+    secrets:
+      token: ${{ secrets.GITHUB_TOKEN }}
