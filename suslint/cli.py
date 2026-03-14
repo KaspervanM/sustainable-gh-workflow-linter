@@ -47,8 +47,7 @@ def main() -> None:
         result = lint_file(path, rules)
         if result == 0 and not args.quiet:
             print(f"Success: no issues found in {path}")
-        else:
-            exit_code = 1
+        exit_code = max(exit_code, result)
 
     sys.exit(exit_code)
 
