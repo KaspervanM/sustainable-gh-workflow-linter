@@ -201,3 +201,24 @@ Create or modify a workflow file (for example `test.yaml`) and run:
 ```bash
 python3 -m suslint.cli test.yaml
 ```
+
+Here’s a revised, concise version that makes that requirement explicit:
+
+## Contributing
+
+GitHub Actions automate versioning, building, and releasing the linter based on [Conventional Commits](https://www.conventionalcommits.org/):
+
+* On pushes to `main`, workflows determine a semantic version for the branch, build platform-specific binaries, and upload them as release artifacts.
+* Versions for other branches (e.g., `dev`, `rc`) can also be set to increment automatically. These branches must be added to the triggers in **auto-version.yml**.
+* To create a standard (non-prerelease) release, use **make-latest-release.yml** manually.
+
+### Versioning
+
+* `main` is the release branch: `vX.Y.Z`.
+* Other branches are labeled (pre-)releases: `vX.Y.Z-branch.N`.
+* **Contributors must follow [Conventional Commits](https://www.conventionalcommits.org/) for all commit messages**, as version bumps are automatically determined from them:
+
+  * `BREAKING CHANGE` or `!` --> major
+  * `feat` --> minor
+  * `fix`/`perf` --> patch
+* Pre-release branches increment only the pre-release number if no new changes relative to `main` exist.
