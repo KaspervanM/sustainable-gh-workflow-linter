@@ -82,3 +82,122 @@ nix run github:KaspervanM/sustainable-gh-workflow-linter -- --help
 You should see the command line help message.
 
 Here is a **clean, developer-friendly section** you can add after the install instructions. It keeps things **simple**, assumes **Nix as the main development environment**, and explains the workflow clearly.
+
+## Development
+
+If you want to contribute to **suslint** or develop new linting rules, follow these steps.
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/KaspervanM/sustainable-gh-workflow-linter.git
+cd sustainable-gh-workflow-linter
+```
+
+### 2. Enter the development environment
+
+This project provides a reproducible development environment using **Nix**.
+
+Run:
+
+```bash
+nix develop
+```
+
+This will open a shell with all required dependencies installed (Python, mypy, etc.).
+
+### 3. Run the linter locally
+
+Inside the development shell you can run the tool directly:
+
+```bash
+python3 -m suslint.cli test.yaml
+```
+
+Or check the CLI help:
+
+```bash
+python3 -m suslint.cli --help
+```
+
+### 4. Type checking
+
+The project uses **mypy** for static type checking.
+
+Run:
+
+```bash
+mypy suslint
+```
+
+### 5. Build the executable
+
+To build the packaged application using Nix:
+
+```bash
+nix build
+```
+
+The resulting executable will appear in:
+
+```
+./result/bin/suslint
+```
+
+You can run it with:
+
+```bash
+./result/bin/suslint test.yaml
+```
+
+### 6. Adding a new lint rule
+
+Rules live in:
+
+```
+suslint/rules/
+```
+
+To add a new rule:
+
+1. Create a new file in `suslint/rules/`
+2. Implement a class that follows the `Rule` protocol
+3. The rule will automatically be discovered and executed
+
+Example:
+
+```python
+class ExampleRule:
+    id = "SUS999"
+    description = "Example rule"
+
+    def check(self, workflow: CommentedMap) -> Iterable[Issue]:
+        ...
+```
+
+The linter automatically loads rules from the `suslint.rules` package.
+
+<details>
+<summary><strong>How parsing and locations work</strong></summary>
+
+Workflow files are loaded using **ruamel.yaml**, which produces a mapping object that behaves like a normal Python dictionary but also stores line and column information for each key. This allows rules to report exactly where a problem occurs in the YAML file.
+
+When writing a rule:
+
+1. **Access the part(s) of the workflow the rule is about** using normal dictionary operations.
+2. **Check for conditions** to enforce.
+    * E.g. existance of keys/values
+3. **Determine the location** in the YAML **(if applicable)**:
+    * Use the helper in `suslint/position.py` to get the 1-based line and column of a key.
+    * Construct a `Location` object with a descriptive `trail` (like `"on.push"` or `"jobs.build"`) and the line/column.
+4. **Yield an `Issue`** with the rule ID, message, and `Location`.
+
+</details>
+
+### 7. Testing your rule
+
+Create or modify a workflow file (for example `test.yaml`) and run:
+
+```bash
+python3 -m suslint.cli test.yaml
+```
