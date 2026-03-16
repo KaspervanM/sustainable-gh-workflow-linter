@@ -77,3 +77,41 @@ def test_main_exits_one_for_missing_file(
     assert exc_info.value.code == 1
     assert captured.out == ""
     assert f"error: file does not exist: {missing_file}" in captured.err
+
+
+def test_main_prints_clean_error_for_invalid_yaml(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    workflow = tmp_path / "invalid.yml"
+    workflow.write_text("on:\n  push: [\n", encoding="utf-8")
+
+    monkeypatch.setattr("sys.argv", ["suslint", str(workflow)])
+
+    with pytest.raises(SystemExit) as exc_info:
+        cli.main()
+
+    captured = capsys.readouterr()
+
+    assert exc_info.value.code == 1
+    assert f"{workflow}:" in captured.out
+    assert "error: failed to parse YAML:" in captured.out
+    assert captured.err == ""
+
+
+def test_main_prints_clean_error_for_non_mapping_top_level_document(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    workflow = tmp_path / "invalid-shape.yml"
+    workflow.write_text("- just\n- a\n- list\n", encoding="utf-8")
+
+    monkeypatch.setattr("sys.argv", ["suslint", str(workflow)])
+
+    with pytest.raises(SystemExit) as exc_info:
+        cli.main()
+
+    captured = capsys.readouterr()
+
+    assert exc_info.value.code == 1
+    assert f"{workflow}:" in captured.out
+    assert "error: workflow file must contain a mapping at the top level" in captured.out
+    assert captured.err == ""

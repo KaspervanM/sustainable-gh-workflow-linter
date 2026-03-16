@@ -1,10 +1,17 @@
 import importlib
 import pkgutil
-from ruamel.yaml import YAML
-from typing import Iterable
 from pathlib import Path
+from typing import Iterable
+
+from ruamel.yaml import YAML
+from ruamel.yaml.comments import CommentedMap
+from ruamel.yaml.error import YAMLError
+
 from suslint.rule import Issue, Rule
-from suslint.position import pos
+
+
+class LintError(Exception):
+    pass
 
 
 def load_rules() -> list[Rule]:
@@ -24,8 +31,14 @@ def load_rules() -> list[Rule]:
 def lint(path: Path, rules: Iterable[Rule]) -> list[Issue]:
     yaml = YAML()
     yaml.preserve_quotes = True
-    with open(path) as f:
-        workflow = yaml.load(f)
+    try:
+        with open(path, encoding="utf-8") as f:
+            workflow = yaml.load(f)
+    except YAMLError as exc:
+        raise LintError(f"failed to parse YAML: {exc}") from exc
+
+    if not isinstance(workflow, CommentedMap):
+        raise LintError("workflow file must contain a mapping at the top level")
 
     issues: list[Issue] = []
 
@@ -37,7 +50,12 @@ def lint(path: Path, rules: Iterable[Rule]) -> list[Issue]:
 
 
 def lint_file(path: Path, rules: Iterable[Rule]) -> int:
-    issues = lint(path, rules)
+    try:
+        issues = lint(path, rules)
+    except LintError as exc:
+        print(f"{path}:")
+        print(f"  error: {exc}")
+        return 1
 
     if not issues:
         return 0
