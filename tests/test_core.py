@@ -1,6 +1,8 @@
 from pathlib import Path
 
-from suslint.core import lint, load_rules
+import pytest
+
+from suslint.core import LintError, lint, load_rules
 
 
 def test_load_rules_discovers_expected_rules() -> None:
@@ -75,3 +77,11 @@ def test_lint_passes_when_workflow_has_timeout_and_branch_filters(tmp_path: Path
     issues = lint(workflow, load_rules())
 
     assert issues == []
+
+
+def test_lint_raises_clean_error_for_non_mapping_top_level_document(tmp_path: Path) -> None:
+    workflow = tmp_path / "workflow.yml"
+    workflow.write_text("- item\n", encoding="utf-8")
+
+    with pytest.raises(LintError, match="mapping at the top level"):
+        lint(workflow, load_rules())
