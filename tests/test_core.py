@@ -9,7 +9,7 @@ def test_load_rules_discovers_expected_rules() -> None:
     rules = load_rules()
     rule_ids = [rule.id for rule in rules]
 
-    assert rule_ids == ["SUS001", "SUS002", "SUS003"]
+    assert rule_ids == ["SUS001", "SUS002", "SUS003", "SUS007"]
     assert rules[0].metadata.severity == "warning"
     assert rules[0].metadata.category
     assert rules[0].metadata.remediation
@@ -30,7 +30,7 @@ def test_lint_reports_job_timeout_with_location(tmp_path: Path) -> None:
     issues = lint(workflow, load_rules())
 
     assert len(issues) == 1
-    assert issues[0].rule_id == "SUS001"
+    assert issues[0].rule_id == "SUS002"
     assert issues[0].message == "job 'build' has no timeout-minutes"
     assert issues[0].location is not None
     assert issues[0].location.trail == "jobs.build"
@@ -55,7 +55,7 @@ def test_lint_reports_push_without_branch_filters(tmp_path: Path) -> None:
     issues = lint(workflow, load_rules())
 
     assert len(issues) == 1
-    assert issues[0].rule_id == "SUS002"
+    assert issues[0].rule_id == "SUS003"
     assert issues[0].message == "Workflow triggers on push to all branches. Add branch filters."
     assert issues[0].location is not None
     assert issues[0].location.trail == "on.push"

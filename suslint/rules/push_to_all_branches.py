@@ -8,7 +8,7 @@ from suslint.workflow import get_event_trigger, has_branch_filters
 
 
 class PushToAllBranches:
-    id = "SUS002"
+    id = "SUS003"
     description = "Workflows should be triggered only when necessary, not on all branches"
     metadata = RuleMetadata(
         severity="warning",

@@ -37,6 +37,7 @@ def has_branch_filters(trigger: Any) -> bool:
         trigger.get("branches") or trigger.get("branches-ignore")
     )
 
+
 def iter_steps(job: CommentedMap) -> Iterator[tuple[int, CommentedMap]]:
     steps = job.get("steps")
 
@@ -46,3 +47,15 @@ def iter_steps(job: CommentedMap) -> Iterator[tuple[int, CommentedMap]]:
     for index, step in enumerate(steps):
         if isinstance(step, CommentedMap):
             yield index, step
+
+
+def is_checkout_step(step: CommentedMap) -> bool:
+    uses = step.get("uses")
+    return isinstance(uses, str) and uses.strip().lower().startswith("actions/checkout@")
+
+
+def get_step_name(step: CommentedMap, fallback_index: int) -> str:
+    name = step.get("name")
+    if isinstance(name, str) and name.strip():
+        return name.strip()
+    return f"steps[{fallback_index}]"
