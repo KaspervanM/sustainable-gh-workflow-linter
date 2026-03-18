@@ -82,7 +82,7 @@ def _step_enables_cache(step: CommentedMap) -> bool:
 
 
 class DependencyCachingRule:
-    id = "SUS003"
+    id = "SUS001"
     description = "Jobs that install dependencies should use caching"
     metadata = RuleMetadata(
         severity="warning",

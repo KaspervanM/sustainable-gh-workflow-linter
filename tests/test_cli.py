@@ -58,8 +58,8 @@ def test_main_exits_one_and_prints_issues_and_summary(
 
     assert exc_info.value.code == 1
     assert f"{workflow.resolve()}:" in captured.out
-    assert "SUS001 [warning/runner-efficiency] jobs.build" in captured.out
-    assert "SUS002 [warning/trigger-scope] on.push" in captured.out
+    assert "SUS002 [warning/runner-efficiency] jobs.build" in captured.out
+    assert "SUS003 [warning/trigger-scope] on.push" in captured.out
     assert "Summary: 2 issues across 1 file." in captured.out
     assert captured.err == ""
 
@@ -184,7 +184,7 @@ def test_main_supports_rule_selection(
         encoding="utf-8",
     )
 
-    monkeypatch.setattr("sys.argv", ["suslint", "--select", "SUS001", str(workflow)])
+    monkeypatch.setattr("sys.argv", ["suslint", "--select", "SUS002", str(workflow)])
 
     with pytest.raises(SystemExit) as exc_info:
         cli.main()
@@ -192,8 +192,8 @@ def test_main_supports_rule_selection(
     captured = capsys.readouterr()
 
     assert exc_info.value.code == 1
-    assert "SUS001" in captured.out
-    assert "SUS002" not in captured.out
+    assert "SUS002" in captured.out
+    assert "SUS003" not in captured.out
     assert "Summary: 1 issue across 1 file." in captured.out
 
 
@@ -211,7 +211,7 @@ def test_main_supports_rule_ignoring(
         encoding="utf-8",
     )
 
-    monkeypatch.setattr("sys.argv", ["suslint", "--ignore", "SUS001", str(workflow)])
+    monkeypatch.setattr("sys.argv", ["suslint", "--ignore", "SUS002", str(workflow)])
 
     with pytest.raises(SystemExit) as exc_info:
         cli.main()
@@ -219,8 +219,8 @@ def test_main_supports_rule_ignoring(
     captured = capsys.readouterr()
 
     assert exc_info.value.code == 1
-    assert "SUS001" not in captured.out
-    assert "SUS002" in captured.out
+    assert "SUS002" not in captured.out
+    assert "SUS003" in captured.out
     assert "Summary: 1 issue across 1 file." in captured.out
 
 
@@ -302,6 +302,7 @@ def test_main_prints_clean_error_for_non_mapping_top_level_document(
     assert "Summary: 1 issue across 1 file." in captured.out
     assert captured.err == ""
 
+
 def test_main_reports_dependency_caching_issue(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -316,6 +317,8 @@ def test_main_reports_dependency_caching_issue(
         "    timeout-minutes: 10\n"
         "    steps:\n"
         "      - uses: actions/checkout@v5\n"
+        "        with:\n"
+        "            fetch-depth: 1\n"
         "      - uses: actions/setup-node@v6\n"
         "        with:\n"
         "          node-version: '20'\n"
@@ -331,7 +334,39 @@ def test_main_reports_dependency_caching_issue(
     captured = capsys.readouterr()
 
     assert exc_info.value.code == 1
-    assert "SUS003 [warning/runner-efficiency] jobs.build" in captured.out
+    assert "SUS001 [warning/runner-efficiency] jobs.build" in captured.out
     assert "installs dependencies without using dependency caching" in captured.out
+    assert "Summary: 1 issue across 1 file." in captured.out
+    assert captured.err == ""
+
+
+def test_main_reports_shallow_clone_issue(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    workflow = tmp_path / "shallow-clone.yml"
+    workflow.write_text(
+        "name: Example\n"
+        "on:\n"
+        "  workflow_dispatch:\n"
+        "jobs:\n"
+        "  build:\n"
+        "    runs-on: ubuntu-latest\n"
+        "    timeout-minutes: 10\n"
+        "    steps:\n"
+        "      - uses: actions/checkout@v5\n"
+        "      - run: echo hello\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr("sys.argv", ["suslint", "--select", "SUS007", str(workflow)])
+
+    with pytest.raises(SystemExit) as exc_info:
+        cli.main()
+
+    captured = capsys.readouterr()
+
+    assert exc_info.value.code == 1
+    assert "SUS007 [warning/runner-efficiency] jobs.build.steps[0]" in captured.out
+    assert "does not use fetch-depth: 1" in captured.out
     assert "Summary: 1 issue across 1 file." in captured.out
     assert captured.err == ""

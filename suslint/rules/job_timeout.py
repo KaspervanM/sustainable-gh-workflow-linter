@@ -8,7 +8,7 @@ from suslint.workflow import iter_jobs
 
 
 class JobTimeoutRule:
-    id = "SUS001"
+    id = "SUS002"
     description = "Jobs should define timeout-minutes to prevent stuck runners"
     metadata = RuleMetadata(
         severity="warning",

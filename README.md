@@ -81,7 +81,6 @@ nix run github:KaspervanM/sustainable-gh-workflow-linter -- --help
 
 You should see the command line help message.
 
-Here is a **clean, developer-friendly section** you can add after the install instructions. It keeps things **simple**, assumes **Nix as the main development environment**, and explains the workflow clearly.
 
 ## Development
 
