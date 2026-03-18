@@ -16,6 +16,9 @@ def test_main_exits_zero_and_prints_success_for_clean_file(
         "  push:\n"
         "    branches:\n"
         "      - main\n"
+        "concurrency:\n"
+        "  group: ci-${{ github.workflow }}-${{ github.ref }}\n"
+        "  cancel-in-progress: true\n"
         "jobs:\n"
         "  build:\n"
         "    runs-on: ubuntu-latest\n"
@@ -43,6 +46,9 @@ def test_main_exits_one_and_prints_issues_and_summary(
         "name: Example\n"
         "on:\n"
         "  push:\n"
+        "concurrency:\n"
+        "  group: ci-${{ github.workflow }}-${{ github.ref }}\n"
+        "  cancel-in-progress: true\n"
         "jobs:\n"
         "  build:\n"
         "    runs-on: ubuntu-latest\n",
@@ -73,6 +79,9 @@ def test_main_supports_directory_input(
         "name: Example\n"
         "on:\n"
         "  workflow_dispatch:\n"
+        "concurrency:\n"
+        "  group: ci-${{ github.workflow }}-${{ github.ref }}\n"
+        "  cancel-in-progress: true\n"
         "jobs:\n"
         "  build:\n"
         "    runs-on: ubuntu-latest\n"
@@ -83,6 +92,9 @@ def test_main_supports_directory_input(
         "name: Example\n"
         "on:\n"
         "  push:\n"
+        "concurrency:\n"
+        "  group: ci-${{ github.workflow }}-${{ github.ref }}\n"
+        "  cancel-in-progress: true\n"
         "jobs:\n"
         "  build:\n"
         "    runs-on: ubuntu-latest\n",
@@ -111,6 +123,9 @@ def test_main_supports_glob_input(
         "name: Example\n"
         "on:\n"
         "  workflow_dispatch:\n"
+        "concurrency:\n"
+        "  group: ci-${{ github.workflow }}-${{ github.ref }}\n"
+        "  cancel-in-progress: true\n"
         "jobs:\n"
         "  build:\n"
         "    runs-on: ubuntu-latest\n"
@@ -121,6 +136,9 @@ def test_main_supports_glob_input(
         "name: Example\n"
         "on:\n"
         "  push:\n"
+        "concurrency:\n"
+        "  group: ci-${{ github.workflow }}-${{ github.ref }}\n"
+        "  cancel-in-progress: true\n"
         "jobs:\n"
         "  build:\n"
         "    runs-on: ubuntu-latest\n",
@@ -147,6 +165,9 @@ def test_main_supports_json_output(
         "name: Example\n"
         "on:\n"
         "  push:\n"
+        "concurrency:\n"
+        "  group: ci-${{ github.workflow }}-${{ github.ref }}\n"
+        "  cancel-in-progress: true\n"
         "jobs:\n"
         "  build:\n"
         "    runs-on: ubuntu-latest\n",
@@ -178,6 +199,9 @@ def test_main_supports_rule_selection(
         "name: Example\n"
         "on:\n"
         "  push:\n"
+        "concurrency:\n"
+        "  group: ci-${{ github.workflow }}-${{ github.ref }}\n"
+        "  cancel-in-progress: true\n"
         "jobs:\n"
         "  build:\n"
         "    runs-on: ubuntu-latest\n",
@@ -205,6 +229,9 @@ def test_main_supports_rule_ignoring(
         "name: Example\n"
         "on:\n"
         "  push:\n"
+        "concurrency:\n"
+        "  group: ci-${{ github.workflow }}-${{ github.ref }}\n"
+        "  cancel-in-progress: true\n"
         "jobs:\n"
         "  build:\n"
         "    runs-on: ubuntu-latest\n",
@@ -480,5 +507,36 @@ def test_main_reports_large_matrix_build_issue(
     assert exc_info.value.code == 1
     assert "SUS009 [warning/runner-efficiency] jobs.test.strategy.matrix" in captured.out
     assert "defines a matrix with 9 combinations" in captured.out
+    assert "Summary: 1 issue across 1 file." in captured.out
+    assert captured.err == ""
+
+
+def test_main_reports_concurrent_jobs_issue(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    workflow = tmp_path / "concurrency.yml"
+    workflow.write_text(
+        "name: Example\n"
+        "on:\n"
+        "  push:\n"
+        "jobs:\n"
+        "  build:\n"
+        "    runs-on: ubuntu-latest\n"
+        "    timeout-minutes: 10\n"
+        "    steps:\n"
+        "      - run: echo build\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr("sys.argv", ["suslint", "--select", "SUS010", str(workflow)])
+
+    with pytest.raises(SystemExit) as exc_info:
+        cli.main()
+
+    captured = capsys.readouterr()
+
+    assert exc_info.value.code == 1
+    assert "SUS010 [warning/runner-efficiency] jobs.build" in captured.out
+    assert "has no effective concurrency control" in captured.out
     assert "Summary: 1 issue across 1 file." in captured.out
     assert captured.err == ""
