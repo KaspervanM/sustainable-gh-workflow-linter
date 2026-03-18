@@ -69,3 +69,28 @@ def step_uses_action(step: CommentedMap, action_prefix: str) -> bool:
 def step_run_text(step: CommentedMap) -> str | None:
     run = step.get("run")
     return run if isinstance(run, str) else None
+
+
+def normalize_needs(job: CommentedMap) -> list[str]:
+    needs = job.get("needs")
+
+    if isinstance(needs, str):
+        return [needs]
+
+    if isinstance(needs, list):
+        return [item for item in needs if isinstance(item, str)]
+
+    return []
+
+
+def job_uses_needs_context(job: CommentedMap) -> bool:
+    def contains_needs_ref(value: Any) -> bool:
+        if isinstance(value, str):
+            return "needs." in value
+        if isinstance(value, CommentedMap):
+            return any(contains_needs_ref(v) for v in value.values())
+        if isinstance(value, list):
+            return any(contains_needs_ref(v) for v in value)
+        return False
+
+    return contains_needs_ref(job)

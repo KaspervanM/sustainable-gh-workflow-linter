@@ -380,6 +380,43 @@ def test_main_reports_artifact_reuse_issue(
     assert captured.err == ""
 
 
+def test_main_reports_parallelization_issue(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    workflow = tmp_path / "parallelization.yml"
+    workflow.write_text(
+        "name: Example\n"
+        "on:\n"
+        "  workflow_dispatch:\n"
+        "jobs:\n"
+        "  build:\n"
+        "    runs-on: ubuntu-latest\n"
+        "    timeout-minutes: 10\n"
+        "    steps:\n"
+        "      - run: echo build\n"
+        "  package:\n"
+        "    runs-on: ubuntu-latest\n"
+        "    needs: build\n"
+        "    timeout-minutes: 10\n"
+        "    steps:\n"
+        "      - run: echo package\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr("sys.argv", ["suslint", "--select", "SUS006", str(workflow)])
+
+    with pytest.raises(SystemExit) as exc_info:
+        cli.main()
+
+    captured = capsys.readouterr()
+
+    assert exc_info.value.code == 1
+    assert "SUS006 [warning/runner-efficiency] jobs.package" in captured.out
+    assert "may be unnecessarily serialized" in captured.out
+    assert "Summary: 1 issue across 1 file." in captured.out
+    assert captured.err == ""
+    
+
 def test_main_reports_shallow_clone_issue(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
