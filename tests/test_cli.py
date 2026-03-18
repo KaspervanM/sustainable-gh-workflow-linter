@@ -317,8 +317,6 @@ def test_main_reports_dependency_caching_issue(
         "    timeout-minutes: 10\n"
         "    steps:\n"
         "      - uses: actions/checkout@v5\n"
-        "        with:\n"
-        "            fetch-depth: 1\n"
         "      - uses: actions/setup-node@v6\n"
         "        with:\n"
         "          node-version: '20'\n"
@@ -326,7 +324,7 @@ def test_main_reports_dependency_caching_issue(
         encoding="utf-8",
     )
 
-    monkeypatch.setattr("sys.argv", ["suslint", str(workflow)])
+    monkeypatch.setattr("sys.argv", ["suslint", "--select", "SUS001", str(workflow)])
 
     with pytest.raises(SystemExit) as exc_info:
         cli.main()
@@ -336,6 +334,48 @@ def test_main_reports_dependency_caching_issue(
     assert exc_info.value.code == 1
     assert "SUS001 [warning/runner-efficiency] jobs.build" in captured.out
     assert "installs dependencies without using dependency caching" in captured.out
+    assert "Summary: 1 issue across 1 file." in captured.out
+    assert captured.err == ""
+
+
+def test_main_reports_artifact_reuse_issue(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    workflow = tmp_path / "artifact-reuse.yml"
+    workflow.write_text(
+        "name: Example\n"
+        "on:\n"
+        "  workflow_dispatch:\n"
+        "jobs:\n"
+        "  build:\n"
+        "    runs-on: ubuntu-latest\n"
+        "    timeout-minutes: 10\n"
+        "    steps:\n"
+        "      - uses: actions/checkout@v5\n"
+        "        with:\n"
+        "          fetch-depth: 1\n"
+        "      - run: npm run build\n"
+        "  package:\n"
+        "    runs-on: ubuntu-latest\n"
+        "    timeout-minutes: 10\n"
+        "    steps:\n"
+        "      - uses: actions/checkout@v5\n"
+        "        with:\n"
+        "          fetch-depth: 1\n"
+        "      - run: npm run build\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr("sys.argv", ["suslint", "--select", "SUS005", str(workflow)])
+
+    with pytest.raises(SystemExit) as exc_info:
+        cli.main()
+
+    captured = capsys.readouterr()
+
+    assert exc_info.value.code == 1
+    assert "SUS005 [warning/runner-efficiency] jobs.package" in captured.out
+    assert "appears to rebuild 'npm-build' outputs already built in job 'build'" in captured.out
     assert "Summary: 1 issue across 1 file." in captured.out
     assert captured.err == ""
 
