@@ -447,3 +447,38 @@ def test_main_reports_shallow_clone_issue(
     assert "does not use fetch-depth: 1" in captured.out
     assert "Summary: 1 issue across 1 file." in captured.out
     assert captured.err == ""
+
+
+def test_main_reports_large_matrix_build_issue(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    workflow = tmp_path / "matrix.yml"
+    workflow.write_text(
+        "name: Matrix Example\n"
+        "on:\n"
+        "  workflow_dispatch:\n"
+        "jobs:\n"
+        "  test:\n"
+        "    runs-on: ${{ matrix.os }}\n"
+        "    timeout-minutes: 10\n"
+        "    strategy:\n"
+        "      matrix:\n"
+        "        os: [ubuntu-latest, windows-latest, macos-latest]\n"
+        "        node: [18, 20, 22]\n"
+        "    steps:\n"
+        "      - run: echo test\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr("sys.argv", ["suslint", "--select", "SUS009", str(workflow)])
+
+    with pytest.raises(SystemExit) as exc_info:
+        cli.main()
+
+    captured = capsys.readouterr()
+
+    assert exc_info.value.code == 1
+    assert "SUS009 [warning/runner-efficiency] jobs.test.strategy.matrix" in captured.out
+    assert "defines a matrix with 9 combinations" in captured.out
+    assert "Summary: 1 issue across 1 file." in captured.out
+    assert captured.err == ""
