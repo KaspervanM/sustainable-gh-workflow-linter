@@ -301,3 +301,37 @@ def test_main_prints_clean_error_for_non_mapping_top_level_document(
     assert "error: workflow file must contain a mapping at the top level" in captured.out
     assert "Summary: 1 issue across 1 file." in captured.out
     assert captured.err == ""
+
+def test_main_reports_dependency_caching_issue(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    workflow = tmp_path / "cache-miss.yml"
+    workflow.write_text(
+        "name: Example\n"
+        "on:\n"
+        "  workflow_dispatch:\n"
+        "jobs:\n"
+        "  build:\n"
+        "    runs-on: ubuntu-latest\n"
+        "    timeout-minutes: 10\n"
+        "    steps:\n"
+        "      - uses: actions/checkout@v5\n"
+        "      - uses: actions/setup-node@v6\n"
+        "        with:\n"
+        "          node-version: '20'\n"
+        "      - run: npm ci\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr("sys.argv", ["suslint", str(workflow)])
+
+    with pytest.raises(SystemExit) as exc_info:
+        cli.main()
+
+    captured = capsys.readouterr()
+
+    assert exc_info.value.code == 1
+    assert "SUS003 [warning/runner-efficiency] jobs.build" in captured.out
+    assert "installs dependencies without using dependency caching" in captured.out
+    assert "Summary: 1 issue across 1 file." in captured.out
+    assert captured.err == ""

@@ -106,6 +106,12 @@ nix develop
 
 This will open a shell with all required dependencies installed (Python, mypy, etc.).
 
+Alternatively, you can use pip instead of Nix:
+```bash
+pip install -e .
+pip install mypy
+```
+
 ### 3. Run the linter locally
 
 Inside the development shell you can run the tool directly:
