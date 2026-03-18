@@ -9,7 +9,7 @@ def test_load_rules_discovers_expected_rules() -> None:
     rules = load_rules()
     rule_ids = [rule.id for rule in rules]
 
-    assert rule_ids == ["SUS001", "SUS002", "SUS003", "SUS007"]
+    assert rule_ids == ["SUS001", "SUS002", "SUS003", "SUS005", "SUS007"]
     assert rules[0].metadata.severity == "warning"
     assert rules[0].metadata.category
     assert rules[0].metadata.remediation

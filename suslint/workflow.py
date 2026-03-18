@@ -59,3 +59,13 @@ def get_step_name(step: CommentedMap, fallback_index: int) -> str:
     if isinstance(name, str) and name.strip():
         return name.strip()
     return f"steps[{fallback_index}]"
+
+
+def step_uses_action(step: CommentedMap, action_prefix: str) -> bool:
+    uses = step.get("uses")
+    return isinstance(uses, str) and uses.strip().lower().startswith(action_prefix.lower())
+
+
+def step_run_text(step: CommentedMap) -> str | None:
+    run = step.get("run")
+    return run if isinstance(run, str) else None
