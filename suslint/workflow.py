@@ -36,3 +36,13 @@ def has_branch_filters(trigger: Any) -> bool:
     return isinstance(trigger, CommentedMap) and bool(
         trigger.get("branches") or trigger.get("branches-ignore")
     )
+
+def iter_steps(job: CommentedMap) -> Iterator[tuple[int, CommentedMap]]:
+    steps = job.get("steps")
+
+    if not isinstance(steps, list):
+        return
+
+    for index, step in enumerate(steps):
+        if isinstance(step, CommentedMap):
+            yield index, step
