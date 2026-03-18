@@ -94,3 +94,15 @@ def job_uses_needs_context(job: CommentedMap) -> bool:
         return False
 
     return contains_needs_ref(job)
+
+
+def get_strategy_matrix(job: CommentedMap) -> CommentedMap | None:
+    strategy = job.get("strategy")
+    if not isinstance(strategy, CommentedMap):
+        return None
+
+    matrix = strategy.get("matrix")
+    if isinstance(matrix, CommentedMap):
+        return matrix
+
+    return None
