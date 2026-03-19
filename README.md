@@ -179,9 +179,21 @@ To add a new rule:
 Example:
 
 ```python
+from typing import Iterable
+
+from ruamel.yaml.comments import CommentedMap
+
+from suslint.rule import Issue, RuleMetadata
+
+
 class ExampleRule:
     id = "SUS999"
     description = "Example rule"
+    metadata = RuleMetadata(
+        severity="warning",
+        category="example-category",
+        remediation="Describe how to fix the issue.",
+    )
 
     def check(self, workflow: CommentedMap) -> Iterable[Issue]:
         ...
