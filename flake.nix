@@ -56,6 +56,7 @@
           packages = [
             pythonEnv
             pkgs.python3Packages.mypy
+            pkgs.python3Packages.pytest
           ];
         };
       }
