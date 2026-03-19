@@ -238,10 +238,15 @@ When writing a rule:
 
 ### 7. Testing your rule
 
-Create or modify a workflow file (for example `test.yaml`) and run:
+For small tests during development, consider creating or modifying a workflow file (for example `test.yaml`) and run:
 
 ```bash
 python3 -m suslint.cli test.yaml
+```
+
+For more rigorous testing and testing before deployment, write unit tests in `tests/`. Run the tests with:
+```bsh
+python -m pytest
 ```
 
 ## Contributing
