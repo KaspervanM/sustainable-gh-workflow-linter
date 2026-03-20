@@ -81,6 +81,19 @@ nix run github:KaspervanM/sustainable-gh-workflow-linter -- --help
 
 You should see the command line help message.
 
+## Usage
+
+Run `$ suslint -h` to find usage instructions.
+
+To ignore warnings, you can use ignore comments. Place the ignore comment at the end of the line the warning refers to. And ignore comment looks as follows:
+
+```yaml
+# suslint ignore: SUSXXX, SUSYYY
+```
+
+Warnings without line number presented can be ignored by adding the ignore comment on the first line of the document.
+
+One or more warnings can be made this way.
 
 ## Development
 
@@ -225,13 +238,16 @@ When writing a rule:
 
 ### 7. Testing your rule
 
-Create or modify a workflow file (for example `test.yaml`) and run:
+For small tests during development, consider creating or modifying a workflow file (for example `test.yaml`) and run:
 
 ```bash
 python3 -m suslint.cli test.yaml
 ```
 
-Here’s a revised, concise version that makes that requirement explicit:
+For more rigorous testing and testing before deployment, write unit tests in `tests/`. Run the tests with:
+```bsh
+python -m pytest
+```
 
 ## Contributing
 
