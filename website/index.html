@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>suslint — Make your CI/CD pipeline greener</title>
+  <meta name="description" content="An open-source linter that scans your GitHub Actions workflows and flags sustainability issues. Reduce wasted compute, save energy, ship greener.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=Manrope:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg-deep: #040907;
+      --bg-primary: #060e08;
+      --bg-secondary: #0b1a0f;
+      --bg-card: #0a1710;
+      --bg-card-hover: #0f2118;
+      --bg-terminal: #0c0c0c;
+      --accent: #00f0a0;
+      --accent-dim: #00c07e;
+      --accent-subtle: #0a2a1a;
+      --accent-glow: rgba(0, 240, 160, 0.08);
+      --accent-glow-md: rgba(0, 240, 160, 0.15);
+      --accent-glow-strong: rgba(0, 240, 160, 0.25);
+      --amber: #f5a623;
+      --red-soft: #f76e6a;
+      --red-bg: rgba(247, 110, 106, 0.08);
+      --green-bg: rgba(0, 240, 160, 0.06);
+      --text-primary: #d8e5dc;
+      --text-secondary: #8da898;
+      --text-muted: #4e6a56;
+      --border: #162a1c;
+      --border-light: #1f3d28;
+      --radius: 14px;
+      --radius-sm: 10px;
+      --font-display: 'Bricolage Grotesque', sans-serif;
+      --font-body: 'Manrope', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg-deep);
+      color: var(--text-primary);
+      line-height: 1.6;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ─── Noise texture overlay ─── */
+    .noise {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0.035;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+    }
+
+    /* ─── Container ─── */
+    .container {
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    /* ─── Navigation ─── */
+    .nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      background: rgba(4, 9, 7, 0.7);
+      border-bottom: 1px solid rgba(22, 42, 28, 0.5);
+      transition: background 0.3s ease;
+    }
+
+    .nav-logo {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.25rem;
+      color: var(--accent);
+      text-decoration: none;
+      letter-spacing: -0.02em;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+      align-items: center;
+    }
+
+    .nav-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: color 0.2s ease;
+    }
+
+    .nav-links a:hover {
+      color: var(--text-primary);
+    }
+
+    .nav-links a.nav-gh {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .nav-links a.nav-gh svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* ─── Hero ─── */
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 6rem 1.5rem 4rem;
+      overflow: hidden;
+    }
+
+    .hero-glow {
+      position: absolute;
+      top: 45%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 700px;
+      height: 700px;
+      background: radial-gradient(circle, var(--accent-glow-md) 0%, rgba(0, 240, 160, 0.03) 40%, transparent 70%);
+      border-radius: 50%;
+      animation: glowPulse 10s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    @keyframes glowPulse {
+      0%, 100% { opacity: 0.6; transform: translate(-50%, -50%) scale(1); }
+      50% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
+    }
+
+    .hero-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0, 240, 160, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 240, 160, 0.04) 1px, transparent 1px);
+      background-size: 64px 64px;
+      mask-image: radial-gradient(ellipse 60% 50% at center, black 20%, transparent 70%);
+      -webkit-mask-image: radial-gradient(ellipse 60% 50% at center, black 20%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      max-width: 760px;
+    }
+
+    .hero-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      color: var(--accent-dim);
+      margin-bottom: 1.5rem;
+      opacity: 0;
+      animation: fadeUp 0.8s ease forwards 0.2s;
+    }
+
+    .hero-title {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: clamp(2.6rem, 6vw, 4.2rem);
+      line-height: 1.08;
+      letter-spacing: -0.03em;
+      color: var(--text-primary);
+      margin-bottom: 1.5rem;
+      opacity: 0;
+      animation: fadeUp 0.8s ease forwards 0.4s;
+    }
+
+    .text-accent {
+      color: var(--accent);
+      position: relative;
+    }
+
+    .hero-subtitle {
+      font-size: 1.1rem;
+      line-height: 1.7;
+      color: var(--text-secondary);
+      max-width: 560px;
+      margin: 0 auto 2.5rem;
+      opacity: 0;
+      animation: fadeUp 0.8s ease forwards 0.6s;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      opacity: 0;
+      animation: fadeUp 0.8s ease forwards 0.8s;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ─── Buttons ─── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.8rem 1.8rem;
+      font-family: var(--font-body);
+      font-size: 0.95rem;
+      font-weight: 600;
+      text-decoration: none;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #050a07;
+      box-shadow: 0 0 20px var(--accent-glow-md), 0 0 60px var(--accent-glow);
+    }
+
+    .btn-primary:hover {
+      background: #1affc0;
+      box-shadow: 0 0 30px var(--accent-glow-strong), 0 0 80px var(--accent-glow-md);
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--text-primary);
+      border: 1px solid var(--border-light);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--accent-dim);
+      color: var(--accent);
+      background: var(--accent-glow);
+      transform: translateY(-2px);
+    }
+
+    /* ─── Scroll indicator ─── */
+    .scroll-indicator {
+      position: absolute;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.6rem;
+      z-index: 2;
+      opacity: 0;
+      animation: fadeUp 0.8s ease forwards 1.2s;
+    }
+
+    .scroll-indicator span {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      color: var(--text-muted);
+    }
+
+    .scroll-track {
+      width: 1px;
+      height: 36px;
+      background: var(--border);
+      position: relative;
+      overflow: hidden;
+      border-radius: 1px;
+    }
+
+    .scroll-track::after {
+      content: '';
+      position: absolute;
+      top: -100%;
+      left: 0;
+      width: 100%;
+      height: 50%;
+      background: linear-gradient(to bottom, transparent, var(--accent));
+      animation: scrollPulse 2.2s ease-in-out infinite;
+    }
+
+    @keyframes scrollPulse {
+      0% { top: -50%; opacity: 0; }
+      50% { opacity: 1; }
+      100% { top: 150%; opacity: 0; }
+    }
+
+    /* ─── Problem / Impact strip ─── */
+    .impact {
+      position: relative;
+      padding: 4rem 0;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, var(--bg-deep) 0%, var(--bg-primary) 50%, var(--bg-deep) 100%);
+    }
+
+    .impact-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2rem;
+    }
+
+    .impact-card {
+      text-align: center;
+      padding: 1rem 0.5rem;
+    }
+
+    .impact-icon {
+      width: 40px;
+      height: 40px;
+      margin: 0 auto 1rem;
+      color: var(--accent);
+      opacity: 0.7;
+    }
+
+    .impact-number {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 1.4rem;
+      color: var(--text-primary);
+      margin-bottom: 0.3rem;
+      letter-spacing: -0.02em;
+    }
+
+    .impact-label {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    /* ─── Section common ─── */
+    .section {
+      padding: 6rem 0;
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 4rem;
+    }
+
+    .section-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      color: var(--accent-dim);
+      margin-bottom: 1rem;
+    }
+
+    .section-title {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: clamp(1.8rem, 4vw, 2.5rem);
+      line-height: 1.15;
+      letter-spacing: -0.025em;
+      color: var(--text-primary);
+      margin-bottom: 1rem;
+    }
+
+    .section-subtitle {
+      font-size: 1.05rem;
+      color: var(--text-secondary);
+      max-width: 540px;
+      margin: 0 auto;
+      line-height: 1.7;
+    }
+
+    /* ─── Guidelines ─── */
+    .guidelines {
+      background: var(--bg-primary);
+      position: relative;
+    }
+
+    .guidelines::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .rule-category {
+      margin-bottom: 3rem;
+    }
+
+    .category-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .category-icon {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      background: var(--accent-subtle);
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+
+    .category-icon svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .category-title {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 1.15rem;
+      color: var(--text-secondary);
+      letter-spacing: -0.01em;
+    }
+
+    /* ─── Rule card ─── */
+    .rule-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent-dim);
+      border-radius: var(--radius);
+      padding: 2rem 2.25rem;
+      transition: all 0.35s ease;
+      position: relative;
+    }
+
+    .rule-card:hover {
+      border-color: var(--border-light);
+      border-left-color: var(--accent);
+      box-shadow: 0 4px 40px var(--accent-glow), 0 0 0 1px var(--border-light);
+      transform: translateY(-3px);
+      background: var(--bg-card-hover);
+    }
+
+    .rule-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .rule-badge {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--accent);
+      background: var(--accent-subtle);
+      padding: 0.25rem 0.7rem;
+      border-radius: 6px;
+      letter-spacing: 0.05em;
+    }
+
+    .rule-severity {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--amber);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .rule-title {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.4rem;
+      color: var(--text-primary);
+      margin-bottom: 0.75rem;
+      letter-spacing: -0.02em;
+    }
+
+    .rule-description {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      line-height: 1.75;
+      margin-bottom: 1.75rem;
+      max-width: 640px;
+    }
+
+    .rule-remediation {
+      font-size: 0.85rem;
+      color: var(--accent-dim);
+      font-weight: 500;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .rule-remediation svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+
+    /* ─── Code comparison ─── */
+    .code-comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .code-panel {
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+
+    .code-label {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      padding: 0.5rem 1.25rem;
+    }
+
+    .code-before .code-label {
+      background: var(--red-bg);
+      color: var(--red-soft);
+      border-bottom: 1px solid rgba(247, 110, 106, 0.12);
+    }
+
+    .code-after .code-label {
+      background: var(--green-bg);
+      color: var(--accent);
+      border-bottom: 1px solid rgba(0, 240, 160, 0.1);
+    }
+
+    .code-panel pre {
+      background: var(--bg-terminal);
+      margin: 0;
+      padding: 1rem 1.25rem;
+      overflow-x: auto;
+    }
+
+    .code-panel code {
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      line-height: 1.8;
+      color: var(--text-secondary);
+    }
+
+    .code-panel .hl-key { color: #7ecbda; }
+    .code-panel .hl-val { color: var(--text-primary); }
+    .code-panel .hl-str { color: #e8c872; }
+    .code-panel .hl-comment { color: var(--text-muted); font-style: italic; }
+
+    .code-panel .line-add {
+      display: inline-block;
+      width: calc(100% + 2.5rem);
+      margin-left: -1.25rem;
+      padding-left: 1.25rem;
+      background: rgba(0, 240, 160, 0.06);
+      border-left: 2px solid var(--accent-dim);
+    }
+
+    .code-panel .line-remove {
+      display: inline-block;
+      width: calc(100% + 2.5rem);
+      margin-left: -1.25rem;
+      padding-left: 1.25rem;
+      background: rgba(247, 110, 106, 0.05);
+      border-left: 2px solid rgba(247, 110, 106, 0.3);
+      text-decoration: line-through;
+      text-decoration-color: rgba(247, 110, 106, 0.3);
+    }
+
+    /* ─── Tool section ─── */
+    .tool-section {
+      background: var(--bg-deep);
+      position: relative;
+    }
+
+    .tool-section::before {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 400px;
+      background: radial-gradient(ellipse, var(--accent-glow) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .tool-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3rem;
+      align-items: start;
+    }
+
+    .tool-info {
+      padding-top: 1rem;
+    }
+
+    .tool-info .tool-name {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 2rem;
+      color: var(--accent);
+      margin-bottom: 1rem;
+      letter-spacing: -0.03em;
+    }
+
+    .tool-info p {
+      font-size: 1rem;
+      color: var(--text-secondary);
+      line-height: 1.75;
+      margin-bottom: 1.5rem;
+    }
+
+    .tool-features {
+      list-style: none;
+      margin-bottom: 2rem;
+    }
+
+    .tool-features li {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      padding: 0.4rem 0;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.6rem;
+    }
+
+    .tool-features li::before {
+      content: '';
+      display: block;
+      width: 6px;
+      height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      margin-top: 0.55rem;
+      flex-shrink: 0;
+    }
+
+    .tool-actions {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    /* ─── Terminal ─── */
+    .terminal {
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid var(--border);
+      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+      background: var(--bg-terminal);
+    }
+
+    .terminal-chrome {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1rem;
+      background: #161616;
+      border-bottom: 1px solid #222;
+    }
+
+    .terminal-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .terminal-dot.r { background: #ff5f57; }
+    .terminal-dot.y { background: #ffbd2e; }
+    .terminal-dot.g { background: #28ca42; }
+
+    .terminal-title {
+      flex: 1;
+      text-align: center;
+      font-size: 0.75rem;
+      color: #555;
+      font-family: var(--font-body);
+      margin-right: 2rem;
+    }
+
+    .terminal-body {
+      padding: 1.25rem 1.5rem;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      line-height: 1.9;
+      min-height: 200px;
+    }
+
+    .terminal-line {
+      white-space: nowrap;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .terminal-line.visible { opacity: 1; }
+
+    .terminal-prompt {
+      color: var(--accent);
+      margin-right: 0.5rem;
+      user-select: none;
+    }
+
+    .terminal-command { color: var(--text-primary); }
+
+    .terminal-file {
+      color: var(--text-primary);
+      font-weight: 500;
+      text-decoration: underline;
+      text-decoration-color: var(--border-light);
+      text-underline-offset: 3px;
+    }
+
+    .terminal-loc { color: var(--text-muted); }
+    .terminal-warn { color: var(--amber); }
+    .terminal-rule { color: var(--accent-dim); }
+    .terminal-msg { color: var(--text-secondary); }
+    .terminal-dim { color: #444; }
+    .terminal-summary { color: var(--text-muted); }
+
+    .terminal-cursor {
+      display: inline-block;
+      width: 8px;
+      height: 16px;
+      background: var(--accent);
+      vertical-align: text-bottom;
+      animation: cursorBlink 1.1s step-end infinite;
+    }
+
+    @keyframes cursorBlink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    /* ─── Install ─── */
+    .install-section {
+      margin-top: 3rem;
+    }
+
+    .install-header {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 1.1rem;
+      color: var(--text-primary);
+      margin-bottom: 1rem;
+    }
+
+    .install-tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .install-tab {
+      font-family: var(--font-body);
+      font-size: 0.85rem;
+      font-weight: 500;
+      padding: 0.6rem 1.2rem;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .install-tab:hover { color: var(--text-secondary); }
+
+    .install-tab.active {
+      color: var(--accent);
+    }
+
+    .install-tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--accent);
+      border-radius: 2px 2px 0 0;
+    }
+
+    .install-panel {
+      display: none;
+      background: var(--bg-terminal);
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+      padding: 1rem 1.25rem;
+    }
+
+    .install-panel.active { display: block; }
+
+    .install-panel code {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: var(--text-primary);
+      display: block;
+      line-height: 1.8;
+    }
+
+    .install-panel .install-comment {
+      color: var(--text-muted);
+    }
+
+    .install-panel .install-cmd {
+      color: var(--accent);
+    }
+
+    /* ─── Footer ─── */
+    .footer {
+      padding: 3rem 2rem;
+      text-align: center;
+      border-top: 1px solid var(--border);
+      background: var(--bg-deep);
+    }
+
+    .footer-brand {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--accent);
+      margin-bottom: 0.75rem;
+    }
+
+    .footer-tagline {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 1.25rem;
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+    }
+
+    .footer-links a {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+
+    .footer-links a:hover { color: var(--accent); }
+
+    /* ─── Scroll reveal ─── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(28px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+
+    .reveal.revealed {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ─── Responsive ─── */
+    @media (max-width: 768px) {
+      .nav { padding: 0.75rem 1rem; }
+      .nav-links { gap: 1rem; }
+      .nav-links .hide-mobile { display: none; }
+
+      .hero { min-height: 90vh; padding: 5rem 1.25rem 3rem; }
+      .hero-glow { width: 400px; height: 400px; }
+
+      .impact-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+      }
+
+      .code-comparison {
+        grid-template-columns: 1fr;
+      }
+
+      .rule-card { padding: 1.5rem; }
+
+      .tool-layout {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+      }
+
+      .terminal-body {
+        overflow-x: auto;
+        font-size: 0.75rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .impact-grid { grid-template-columns: 1fr; gap: 1rem; }
+      .hero-title { font-size: 2.2rem; }
+      .section { padding: 4rem 0; }
+    }
+
+    /* ─── Selection color ─── */
+    ::selection {
+      background: rgba(0, 240, 160, 0.2);
+      color: var(--text-primary);
+    }
+  </style>
+</head>
+<body>
+  <div class="noise"></div>
+
+  <!-- ─── Navigation ─── -->
+  <nav class="nav">
+    <a href="#" class="nav-logo">suslint</a>
+    <div class="nav-links">
+      <a href="#guidelines" class="hide-mobile">Guidelines</a>
+      <a href="#tool" class="hide-mobile">The Tool</a>
+      <a href="https://github.com/KaspervanM/sustainable-gh-workflow-linter" target="_blank" rel="noopener" class="nav-gh">
+        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+    </div>
+  </nav>
+
+  <!-- ─── Hero ─── -->
+  <section class="hero" id="hero">
+    <div class="hero-glow"></div>
+    <div class="hero-grid"></div>
+    <div class="hero-content">
+      <p class="hero-label">Open-source sustainability linter for GitHub Actions</p>
+      <h1 class="hero-title">Make your CI/CD<br>pipeline <span class="text-accent">greener</span></h1>
+      <p class="hero-subtitle">
+        CI/CD pipelines run millions of times daily, consuming significant compute and energy.
+        Most workflows are written without considering their environmental footprint.
+        Small inefficiencies compound at scale &mdash; and there&rsquo;s been no standard tooling to catch them. Until now.
+      </p>
+      <div class="hero-actions">
+        <a href="#guidelines" class="btn btn-primary">Explore Guidelines</a>
+        <a href="#tool" class="btn btn-secondary">Get the tool</a>
+      </div>
+    </div>
+    <div class="scroll-indicator">
+      <span>Scroll</span>
+      <div class="scroll-track"></div>
+    </div>
+  </section>
+
+  <!-- ─── Impact strip ─── -->
+  <section class="impact">
+    <div class="container">
+      <div class="impact-grid">
+        <div class="impact-card reveal" style="transition-delay: 0s;">
+          <div class="impact-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/>
+              <circle cx="12" cy="12" r="4"/>
+            </svg>
+          </div>
+          <div class="impact-number">Millions</div>
+          <div class="impact-label">of CI runs happen daily worldwide</div>
+        </div>
+        <div class="impact-card reveal" style="transition-delay: 0.1s;">
+          <div class="impact-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+            </svg>
+          </div>
+          <div class="impact-number">Unchecked</div>
+          <div class="impact-label">Most workflows ignore environmental impact</div>
+        </div>
+        <div class="impact-card reveal" style="transition-delay: 0.2s;">
+          <div class="impact-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 12A10 10 0 1 1 12 2"/>
+              <path d="M22 2 13.5 10.5"/>
+              <path d="M16 2h6v6"/>
+            </svg>
+          </div>
+          <div class="impact-number">Compounding</div>
+          <div class="impact-label">Small inefficiencies multiply at scale</div>
+        </div>
+        <div class="impact-card reveal" style="transition-delay: 0.3s;">
+          <div class="impact-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22c4-3.5 8-7.5 8-12a8 8 0 0 0-16 0c0 4.5 4 8.5 8 12z"/>
+              <path d="M12 6v6l3 3"/>
+            </svg>
+          </div>
+          <div class="impact-number">Fixable</div>
+          <div class="impact-label">Simple changes make a real difference</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Guidelines ─── -->
+  <section class="guidelines section" id="guidelines">
+    <div class="container">
+      <div class="section-header reveal">
+        <p class="section-label">Sustainability Rules</p>
+        <h2 class="section-title">Guidelines for greener workflows</h2>
+        <p class="section-subtitle">
+          Each rule targets a specific source of waste in GitHub Actions. Follow them to cut unnecessary compute, reduce energy use, and ship with a lighter footprint.
+        </p>
+      </div>
+
+      <!-- Category: Runner Efficiency -->
+      <div class="rule-category reveal" style="transition-delay: 0.1s;">
+        <div class="category-header">
+          <div class="category-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 6v6l4 2"/>
+            </svg>
+          </div>
+          <h3 class="category-title">Runner Efficiency</h3>
+        </div>
+
+        <div class="rule-card">
+          <div class="rule-header">
+            <span class="rule-badge">SUS001</span>
+            <span class="rule-severity">warning</span>
+          </div>
+          <h4 class="rule-title">Set Job Timeouts</h4>
+          <p class="rule-description">
+            Jobs without <code style="color:var(--accent); background:var(--accent-subtle); padding:0.1em 0.4em; border-radius:4px; font-family:var(--font-mono); font-size:0.88em;">timeout-minutes</code> can run indefinitely when stuck &mdash; a hung test suite, a dangling network call, a zombie process.
+            That's compute and energy burned for nothing. A simple timeout ensures stuck runners get terminated promptly, freeing shared infrastructure and saving real watts.
+          </p>
+          <div class="rule-remediation">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+            Add <code style="font-family:var(--font-mono); font-size:0.9em;">timeout-minutes</code> to every job definition.
+          </div>
+          <div class="code-comparison">
+            <div class="code-panel code-before">
+              <span class="code-label">Before</span>
+              <pre><code><span class="hl-key">jobs</span>:
+  <span class="hl-key">build</span>:
+    <span class="hl-key">runs-on</span>: <span class="hl-val">ubuntu-latest</span>
+    <span class="hl-key">steps</span>:
+      - <span class="hl-key">uses</span>: <span class="hl-str">actions/checkout@v4</span>
+      - <span class="hl-key">run</span>: <span class="hl-str">npm test</span>
+    <span class="hl-comment"># no timeout — runner could hang forever</span></code></pre>
+            </div>
+            <div class="code-panel code-after">
+              <span class="code-label">After</span>
+              <pre><code><span class="hl-key">jobs</span>:
+  <span class="hl-key">build</span>:
+    <span class="hl-key">runs-on</span>: <span class="hl-val">ubuntu-latest</span>
+<span class="line-add">    <span class="hl-key">timeout-minutes</span>: <span class="hl-val">10</span></span>    <span class="hl-key">steps</span>:
+      - <span class="hl-key">uses</span>: <span class="hl-str">actions/checkout@v4</span>
+      - <span class="hl-key">run</span>: <span class="hl-str">npm test</span></code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Category: Trigger Optimization -->
+      <div class="rule-category reveal" style="transition-delay: 0.2s;">
+        <div class="category-header">
+          <div class="category-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="6" y1="3" x2="6" y2="15"/>
+              <circle cx="18" cy="6" r="3"/>
+              <circle cx="6" cy="18" r="3"/>
+              <path d="M18 9a9 9 0 0 1-9 9"/>
+            </svg>
+          </div>
+          <h3 class="category-title">Trigger Optimization</h3>
+        </div>
+
+        <div class="rule-card">
+          <div class="rule-header">
+            <span class="rule-badge">SUS002</span>
+            <span class="rule-severity">warning</span>
+          </div>
+          <h4 class="rule-title">Filter Branch Triggers</h4>
+          <p class="rule-description">
+            A <code style="color:var(--accent); background:var(--accent-subtle); padding:0.1em 0.4em; border-radius:4px; font-family:var(--font-mono); font-size:0.88em;">push</code> trigger without branch filters fires on every push to every branch &mdash; feature branches, experiments, typo fixes.
+            That means full CI runs for changes that may never reach production. Restrict triggers to the branches that matter and you'll eliminate a huge volume of unnecessary builds.
+          </p>
+          <div class="rule-remediation">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
+            Add <code style="font-family:var(--font-mono); font-size:0.9em;">branches</code> or <code style="font-family:var(--font-mono); font-size:0.9em;">branches-ignore</code> filters to push triggers.
+          </div>
+          <div class="code-comparison">
+            <div class="code-panel code-before">
+              <span class="code-label">Before</span>
+              <pre><code><span class="hl-key">on</span>:
+  <span class="hl-key">push</span>:
+  <span class="hl-key">workflow_dispatch</span>:
+
+<span class="hl-comment"># triggers on every push to every branch</span></code></pre>
+            </div>
+            <div class="code-panel code-after">
+              <span class="code-label">After</span>
+              <pre><code><span class="hl-key">on</span>:
+  <span class="hl-key">push</span>:
+<span class="line-add">    <span class="hl-key">branches</span>: [<span class="hl-str">main</span>, <span class="hl-str">develop</span>]</span>  <span class="hl-key">workflow_dispatch</span>:
+
+<span class="hl-comment"># only triggers on relevant branches</span></code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ─── The Tool ─── -->
+  <section class="tool-section section" id="tool">
+    <div class="container">
+      <div class="section-header reveal">
+        <p class="section-label">The Tool</p>
+        <h2 class="section-title">Meet suslint</h2>
+        <p class="section-subtitle">
+          An open-source CLI that scans your GitHub Actions workflow YAML files and flags sustainability issues &mdash; so you can fix them before they ship.
+        </p>
+      </div>
+
+      <div class="tool-layout">
+        <div class="tool-info reveal" style="transition-delay: 0.1s;">
+          <div class="tool-name">suslint</div>
+          <p>
+            Point it at your workflow files and get instant feedback. Each issue links back to a sustainability guideline with a clear fix.
+          </p>
+          <ul class="tool-features">
+            <li>Scans single files, directories, or glob patterns</li>
+            <li>JSON output for CI integration</li>
+            <li>Select or ignore specific rules with flags</li>
+            <li>Zero config &mdash; works out of the box</li>
+            <li>Cross-platform: Linux, macOS, Windows</li>
+          </ul>
+          <div class="tool-actions">
+            <a href="https://github.com/KaspervanM/sustainable-gh-workflow-linter" target="_blank" rel="noopener" class="btn btn-primary">
+              Get Started
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </a>
+            <a href="https://github.com/KaspervanM/sustainable-gh-workflow-linter" target="_blank" rel="noopener" class="btn btn-secondary">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+              View on GitHub
+            </a>
+          </div>
+        </div>
+
+        <div class="reveal" style="transition-delay: 0.25s;">
+          <div class="terminal" id="terminal">
+            <div class="terminal-chrome">
+              <span class="terminal-dot r"></span>
+              <span class="terminal-dot y"></span>
+              <span class="terminal-dot g"></span>
+              <span class="terminal-title">Terminal</span>
+            </div>
+            <div class="terminal-body">
+              <div class="terminal-line" data-delay="0">
+                <span class="terminal-prompt">$</span>
+                <span class="terminal-command" id="typed-cmd"></span><span class="terminal-cursor" id="cmd-cursor"></span>
+              </div>
+              <div class="terminal-line" data-delay="1800">
+                &nbsp;
+              </div>
+              <div class="terminal-line" data-delay="2000">
+                <span class="terminal-file">.github/workflows/ci.yml</span>
+              </div>
+              <div class="terminal-line" data-delay="2300">
+                &nbsp;&nbsp;<span class="terminal-loc">5:3</span>&nbsp;&nbsp;<span class="terminal-warn">warning</span>&nbsp;&nbsp;<span class="terminal-msg">job 'build' has no timeout-minutes</span>&nbsp;&nbsp;<span class="terminal-rule">SUS001</span>
+              </div>
+              <div class="terminal-line" data-delay="2600">
+                &nbsp;&nbsp;<span class="terminal-loc">3:3</span>&nbsp;&nbsp;<span class="terminal-warn">warning</span>&nbsp;&nbsp;<span class="terminal-msg">Workflow triggers on push to all branches</span>&nbsp;&nbsp;<span class="terminal-rule">SUS002</span>
+              </div>
+              <div class="terminal-line" data-delay="2900">
+                &nbsp;
+              </div>
+              <div class="terminal-line" data-delay="3100">
+                <span class="terminal-dim">───</span>
+              </div>
+              <div class="terminal-line" data-delay="3300">
+                <span class="terminal-summary">Found <span style="color:var(--amber);">2 warnings</span> in 1 file</span>
+              </div>
+              <div class="terminal-line" data-delay="3600">
+                &nbsp;
+              </div>
+              <div class="terminal-line" data-delay="3800">
+                <span class="terminal-prompt">$</span> <span class="terminal-cursor" id="final-cursor" style="display:none;"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Install section -->
+          <div class="install-section">
+            <div class="install-header">Installation</div>
+            <div class="install-tabs" role="tablist">
+              <button class="install-tab active" data-tab="tab-pip" role="tab" aria-selected="true">pip</button>
+              <button class="install-tab" data-tab="tab-binary" role="tab" aria-selected="false">Binary</button>
+              <button class="install-tab" data-tab="tab-nix" role="tab" aria-selected="false">Nix</button>
+            </div>
+            <div class="install-panel active" id="tab-pip">
+              <code>
+                <span class="install-comment"># Requires Python 3.11+</span><br>
+                <span class="install-cmd">pip install</span> sustainable-gh-workflow-linter<br>
+                <br>
+                <span class="install-comment"># Run it</span><br>
+                <span class="install-cmd">suslint</span> .github/workflows/
+              </code>
+            </div>
+            <div class="install-panel" id="tab-binary">
+              <code>
+                <span class="install-comment"># Download the binary for your platform from Releases</span><br>
+                <span class="install-cmd">curl -L</span> -o suslint \<br>
+                &nbsp;&nbsp;https://github.com/KaspervanM/sustainable-gh-workflow-linter/releases/latest<br>
+                <span class="install-cmd">chmod +x</span> suslint<br>
+                <br>
+                <span class="install-comment"># Available for Linux, macOS, and Windows</span>
+              </code>
+            </div>
+            <div class="install-panel" id="tab-nix">
+              <code>
+                <span class="install-comment"># Reproducible one-liner</span><br>
+                <span class="install-cmd">nix run</span> github:KaspervanM/sustainable-gh-workflow-linter
+              </code>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Footer ─── -->
+  <footer class="footer">
+    <div class="footer-brand">suslint</div>
+    <p class="footer-tagline">Built for a greener future.</p>
+    <div class="footer-links">
+      <a href="#guidelines">Guidelines</a>
+      <a href="#tool">The Tool</a>
+      <a href="https://github.com/KaspervanM/sustainable-gh-workflow-linter" target="_blank" rel="noopener">GitHub</a>
+    </div>
+  </footer>
+
+  <script>
+    /* ─── Scroll reveal ─── */
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('revealed');
+          revealObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+    document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+
+    /* ─── Install tabs ─── */
+    document.querySelectorAll('.install-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.install-tab').forEach(t => {
+          t.classList.remove('active');
+          t.setAttribute('aria-selected', 'false');
+        });
+        document.querySelectorAll('.install-panel').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        tab.setAttribute('aria-selected', 'true');
+        document.getElementById(tab.dataset.tab).classList.add('active');
+      });
+    });
+
+    /* ─── Terminal typing animation ─── */
+    const terminalEl = document.getElementById('terminal');
+    const typedCmd = document.getElementById('typed-cmd');
+    const cmdCursor = document.getElementById('cmd-cursor');
+    const finalCursor = document.getElementById('final-cursor');
+    const command = 'suslint .github/workflows/ci.yml';
+    let terminalAnimated = false;
+
+    function animateTerminal() {
+      if (terminalAnimated) return;
+      terminalAnimated = true;
+
+      // Show the first line immediately
+      const lines = terminalEl.querySelectorAll('.terminal-line');
+      lines[0].classList.add('visible');
+
+      // Type the command
+      let i = 0;
+      const typeInterval = setInterval(() => {
+        if (i < command.length) {
+          typedCmd.textContent += command[i];
+          i++;
+        } else {
+          clearInterval(typeInterval);
+          cmdCursor.style.display = 'none';
+
+          // Reveal output lines with delays
+          lines.forEach((line, idx) => {
+            if (idx === 0) return; // already visible
+            const delay = parseInt(line.dataset.delay) || 0;
+            setTimeout(() => {
+              line.classList.add('visible');
+              // Show final cursor on last line
+              if (idx === lines.length - 1) {
+                finalCursor.style.display = 'inline-block';
+              }
+            }, delay);
+          });
+        }
+      }, 45);
+    }
+
+    const terminalObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          animateTerminal();
+          terminalObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.3 });
+
+    terminalObserver.observe(terminalEl);
+
+    /* ─── Smooth scroll for anchor links ─── */
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', (e) => {
+        const target = document.querySelector(a.getAttribute('href'));
+        if (target) {
+          e.preventDefault();
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+
+    /* ─── Nav background on scroll ─── */
+    const nav = document.querySelector('.nav');
+    let ticking = false;
+    window.addEventListener('scroll', () => {
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          nav.style.background = window.scrollY > 60
+            ? 'rgba(4, 9, 7, 0.92)'
+            : 'rgba(4, 9, 7, 0.7)';
+          ticking = false;
+        });
+        ticking = true;
+      }
+    });
+  </script>
+</body>
+</html>
