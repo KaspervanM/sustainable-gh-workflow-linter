@@ -9,7 +9,7 @@ def test_load_rules_discovers_expected_rules() -> None:
     rules = load_rules()
     rule_ids = [rule.id for rule in rules]
 
-    assert rule_ids == ["SUS001", "SUS002"]
+    assert rule_ids == ["SUS001", "SUS002", "SUS003", "SUS005", "SUS006", "SUS007", "SUS009", "SUS010"]
     assert rules[0].metadata.severity == "warning"
     assert rules[0].metadata.category
     assert rules[0].metadata.remediation
@@ -21,6 +21,9 @@ def test_lint_reports_job_timeout_with_location(tmp_path: Path) -> None:
         "name: Example\n"
         "on:\n"
         "  workflow_dispatch:\n"
+        "concurrency:\n"
+        "  group: ci-${{ github.workflow }}-${{ github.ref }}\n"
+        "  cancel-in-progress: true\n"     
         "jobs:\n"
         "  build:\n"
         "    runs-on: ubuntu-latest\n",
@@ -30,11 +33,11 @@ def test_lint_reports_job_timeout_with_location(tmp_path: Path) -> None:
     issues = lint(workflow, load_rules())
 
     assert len(issues) == 1
-    assert issues[0].rule_id == "SUS001"
+    assert issues[0].rule_id == "SUS002"
     assert issues[0].message == "job 'build' has no timeout-minutes"
     assert issues[0].location is not None
     assert issues[0].location.trail == "jobs.build"
-    assert issues[0].location.line == 5
+    assert issues[0].location.line == 8
     assert issues[0].location.col == 3
 
 
@@ -45,6 +48,9 @@ def test_lint_reports_push_without_branch_filters(tmp_path: Path) -> None:
         "on:\n"
         "  push:\n"
         "  workflow_dispatch:\n"
+        "concurrency:\n"
+        "  group: ci-${{ github.workflow }}-${{ github.ref }}\n"
+        "  cancel-in-progress: true\n"
         "jobs:\n"
         "  build:\n"
         "    runs-on: ubuntu-latest\n"
@@ -55,7 +61,7 @@ def test_lint_reports_push_without_branch_filters(tmp_path: Path) -> None:
     issues = lint(workflow, load_rules())
 
     assert len(issues) == 1
-    assert issues[0].rule_id == "SUS002"
+    assert issues[0].rule_id == "SUS003"
     assert issues[0].message == "Workflow triggers on push to all branches. Add branch filters."
     assert issues[0].location is not None
     assert issues[0].location.trail == "on.push"
@@ -71,6 +77,9 @@ def test_lint_passes_when_workflow_has_timeout_and_branch_filters(tmp_path: Path
         "  push:\n"
         "    branches:\n"
         "      - main\n"
+        "concurrency:\n"
+        "  group: ci-${{ github.workflow }}-${{ github.ref }}\n"
+        "  cancel-in-progress: true\n"
         "jobs:\n"
         "  build:\n"
         "    runs-on: ubuntu-latest\n"
@@ -111,6 +120,9 @@ def test_count_helpers_account_for_errors_and_issues(tmp_path: Path) -> None:
         "name: Example\n"
         "on:\n"
         "  workflow_dispatch:\n"
+        "concurrency:\n"
+        "  group: ci-${{ github.workflow }}-${{ github.ref }}\n"
+        "  cancel-in-progress: true\n"
         "jobs:\n"
         "  build:\n"
         "    runs-on: ubuntu-latest\n"
@@ -121,6 +133,9 @@ def test_count_helpers_account_for_errors_and_issues(tmp_path: Path) -> None:
         "name: Example\n"
         "on:\n"
         "  push:\n"
+        "concurrency:\n"
+        "  group: ci-${{ github.workflow }}-${{ github.ref }}\n"
+        "  cancel-in-progress: true\n"
         "jobs:\n"
         "  build:\n"
         "    runs-on: ubuntu-latest\n",

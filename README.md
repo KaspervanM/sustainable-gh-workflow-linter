@@ -81,7 +81,6 @@ nix run github:KaspervanM/sustainable-gh-workflow-linter -- --help
 
 You should see the command line help message.
 
-Here is a **clean, developer-friendly section** you can add after the install instructions. It keeps things **simple**, assumes **Nix as the main development environment**, and explains the workflow clearly.
 
 ## Development
 
@@ -105,6 +104,12 @@ nix develop
 ```
 
 This will open a shell with all required dependencies installed (Python, mypy, etc.).
+
+Alternatively, you can use pip instead of Nix:
+```bash
+pip install -e .
+pip install mypy
+```
 
 ### 3. Run the linter locally
 

@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "sustainable-gh-workflow-linter"
 version = "0.0.0"
 description = "A linter that makes GitHub workflows more sustainable."
-authors = [{name = "Kasper van Maasdam"}, {name = "Serban Mihai-Radu"}]
+authors = [{name = "Kasper van Maasdam"}, {name = "Rebecca Andrei"}, {name = "Serban Mihai-Radu"}]
 readme = "README.md"
 requires-python = ">=3.11"
 license = "GPL-3.0-or-later"
