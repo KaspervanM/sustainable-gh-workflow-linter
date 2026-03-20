@@ -120,6 +120,18 @@ Or check the CLI help:
 python3 -m suslint.cli --help
 ```
 
+The CLI also supports directories, glob patterns, JSON output, and rule filtering:
+
+```bash
+python3 -m suslint.cli .github/workflows
+python3 -m suslint.cli ".github/workflows/*.yml"
+python3 -m suslint.cli --format json test.yaml
+python3 -m suslint.cli --select SUS001 test.yaml
+python3 -m suslint.cli --ignore SUS002 test.yaml
+```
+
+Text output includes a short summary line with the total number of issues and affected files.
+
 ### 4. Type checking
 
 The project uses **mypy** for static type checking.
@@ -167,9 +179,21 @@ To add a new rule:
 Example:
 
 ```python
+from typing import Iterable
+
+from ruamel.yaml.comments import CommentedMap
+
+from suslint.rule import Issue, RuleMetadata
+
+
 class ExampleRule:
     id = "SUS999"
     description = "Example rule"
+    metadata = RuleMetadata(
+        severity="warning",
+        category="example-category",
+        remediation="Describe how to fix the issue.",
+    )
 
     def check(self, workflow: CommentedMap) -> Iterable[Issue]:
         ...
