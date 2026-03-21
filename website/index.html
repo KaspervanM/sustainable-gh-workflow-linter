@@ -936,6 +936,19 @@
       background: rgba(0, 240, 160, 0.2);
       color: var(--text-primary);
     }
+
+    .rule-category-badge {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px;
+      margin-left: auto;
+    }
+
+    .rule-card:not(:last-child) {
+      margin-bottom: 1.5rem;
+    }
   </style>
 </head>
 <body>
@@ -1036,104 +1049,7 @@
         </p>
       </div>
 
-      <!-- Category: Runner Efficiency -->
-      <div class="rule-category reveal" style="transition-delay: 0.1s;">
-        <div class="category-header">
-          <div class="category-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"/>
-              <path d="M12 6v6l4 2"/>
-            </svg>
-          </div>
-          <h3 class="category-title">Runner Efficiency</h3>
-        </div>
-
-        <div class="rule-card">
-          <div class="rule-header">
-            <span class="rule-badge">SUS001</span>
-            <span class="rule-severity">warning</span>
-          </div>
-          <h4 class="rule-title">Set Job Timeouts</h4>
-          <p class="rule-description">
-            Jobs without <code style="color:var(--accent); background:var(--accent-subtle); padding:0.1em 0.4em; border-radius:4px; font-family:var(--font-mono); font-size:0.88em;">timeout-minutes</code> can run indefinitely when stuck &mdash; a hung test suite, a dangling network call, a zombie process.
-            That's compute and energy burned for nothing. A simple timeout ensures stuck runners get terminated promptly, freeing shared infrastructure and saving real watts.
-          </p>
-          <div class="rule-remediation">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
-            Add <code style="font-family:var(--font-mono); font-size:0.9em;">timeout-minutes</code> to every job definition.
-          </div>
-          <div class="code-comparison">
-            <div class="code-panel code-before">
-              <span class="code-label">Before</span>
-              <pre><code><span class="hl-key">jobs</span>:
-  <span class="hl-key">build</span>:
-    <span class="hl-key">runs-on</span>: <span class="hl-val">ubuntu-latest</span>
-    <span class="hl-key">steps</span>:
-      - <span class="hl-key">uses</span>: <span class="hl-str">actions/checkout@v4</span>
-      - <span class="hl-key">run</span>: <span class="hl-str">npm test</span>
-    <span class="hl-comment"># no timeout — runner could hang forever</span></code></pre>
-            </div>
-            <div class="code-panel code-after">
-              <span class="code-label">After</span>
-              <pre><code><span class="hl-key">jobs</span>:
-  <span class="hl-key">build</span>:
-    <span class="hl-key">runs-on</span>: <span class="hl-val">ubuntu-latest</span>
-<span class="line-add">    <span class="hl-key">timeout-minutes</span>: <span class="hl-val">10</span></span>    <span class="hl-key">steps</span>:
-      - <span class="hl-key">uses</span>: <span class="hl-str">actions/checkout@v4</span>
-      - <span class="hl-key">run</span>: <span class="hl-str">npm test</span></code></pre>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Category: Trigger Optimization -->
-      <div class="rule-category reveal" style="transition-delay: 0.2s;">
-        <div class="category-header">
-          <div class="category-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="6" y1="3" x2="6" y2="15"/>
-              <circle cx="18" cy="6" r="3"/>
-              <circle cx="6" cy="18" r="3"/>
-              <path d="M18 9a9 9 0 0 1-9 9"/>
-            </svg>
-          </div>
-          <h3 class="category-title">Trigger Optimization</h3>
-        </div>
-
-        <div class="rule-card">
-          <div class="rule-header">
-            <span class="rule-badge">SUS002</span>
-            <span class="rule-severity">warning</span>
-          </div>
-          <h4 class="rule-title">Filter Branch Triggers</h4>
-          <p class="rule-description">
-            A <code style="color:var(--accent); background:var(--accent-subtle); padding:0.1em 0.4em; border-radius:4px; font-family:var(--font-mono); font-size:0.88em;">push</code> trigger without branch filters fires on every push to every branch &mdash; feature branches, experiments, typo fixes.
-            That means full CI runs for changes that may never reach production. Restrict triggers to the branches that matter and you'll eliminate a huge volume of unnecessary builds.
-          </p>
-          <div class="rule-remediation">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
-            Add <code style="font-family:var(--font-mono); font-size:0.9em;">branches</code> or <code style="font-family:var(--font-mono); font-size:0.9em;">branches-ignore</code> filters to push triggers.
-          </div>
-          <div class="code-comparison">
-            <div class="code-panel code-before">
-              <span class="code-label">Before</span>
-              <pre><code><span class="hl-key">on</span>:
-  <span class="hl-key">push</span>:
-  <span class="hl-key">workflow_dispatch</span>:
-
-<span class="hl-comment"># triggers on every push to every branch</span></code></pre>
-            </div>
-            <div class="code-panel code-after">
-              <span class="code-label">After</span>
-              <pre><code><span class="hl-key">on</span>:
-  <span class="hl-key">push</span>:
-<span class="line-add">    <span class="hl-key">branches</span>: [<span class="hl-str">main</span>, <span class="hl-str">develop</span>]</span>  <span class="hl-key">workflow_dispatch</span>:
-
-<span class="hl-comment"># only triggers on relevant branches</span></code></pre>
-            </div>
-          </div>
-        </div>
-      </div>
+      <div id="rules-root"></div>
 
     </div>
   </section>
@@ -1372,6 +1288,96 @@
         ticking = true;
       }
     });
+
+    const RULES = [{
+        category: "Runner Efficiency",
+        icon: "clock",
+        id: "SUS001",
+        severity: "warning",
+        title: "Set Job Timeouts",
+        description: "Jobs without timeout-minutes can run indefinitely...",
+        remediation: "Add timeout-minutes to every job.",
+        before: `jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm test`,
+        after: `jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm test`
+      },
+
+      {
+        category: "Trigger Optimization",
+        icon: "branch",
+        id: "SUS002",
+        severity: "warning",
+        title: "Filter Branch Triggers",
+        description: "Push without branch filters runs on every branch...",
+        remediation: "Add branches or branches-ignore.",
+        before: `on:
+  push:
+  workflow_dispatch:`,
+        after: `on:
+  push:
+    branches: [main, develop]
+  workflow_dispatch:`
+      }
+    ];
+    function renderRules() {
+      const root = document.getElementById("rules-root");
+      root.innerHTML = "";
+
+      RULES.forEach((rule, i) => {
+        const el = document.createElement("div");
+        el.className = "rule-card reveal";
+        el.style.transitionDelay = `${i * 0.05}s`;
+
+        el.innerHTML = `
+          <div class="rule-header">
+            <span class="rule-badge">${rule.id}</span>
+            <span class="rule-severity">${rule.severity}</span>
+            <span class="rule-category-badge">${rule.category}</span>
+          </div>
+
+          <h4 class="rule-title">${rule.title}</h4>
+
+          <p class="rule-description">${rule.description}</p>
+
+          <div class="rule-remediation">
+            ✔ ${rule.remediation}
+          </div>
+
+          <div class="code-comparison">
+            <div class="code-panel code-before">
+              <span class="code-label">Before</span>
+              <pre><code>${escapeHtml(rule.before)}</code></pre>
+            </div>
+            <div class="code-panel code-after">
+              <span class="code-label">After</span>
+              <pre><code>${escapeHtml(rule.after)}</code></pre>
+            </div>
+          </div>
+        `;
+
+        root.appendChild(el);
+      });
+
+      document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+    }
+    function escapeHtml(str) {
+      return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    renderRules();
   </script>
 </body>
 </html>
