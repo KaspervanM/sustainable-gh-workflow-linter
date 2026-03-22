@@ -156,3 +156,26 @@ def test_detects_duplicate_uses_only_steps(tmp_path: Path) -> None:
     assert len(issues) == 1
     assert issues[0].location is not None
     assert issues[0].location.trail == "jobs.job2"
+
+
+def test_ignores_different_runs_on(tmp_path: Path) -> None:
+    workflow = tmp_path / "workflow.yml"
+    workflow.write_text(
+        "name: Example\n"
+        "on:\n"
+        "  workflow_dispatch:\n"
+        "jobs:\n"
+        "  job1:\n"
+        "    runs-on: ubuntu-10\n"
+        "    steps:\n"
+        "      - uses: actions/setup-node@v4\n"
+        "  job2:\n"
+        "    runs-on: ubuntu-latest\n"
+        "    steps:\n"
+        "      - uses: actions/setup-node@v4\n",
+        encoding="utf-8",
+    )
+
+    issues = lint(workflow, [RULE])
+
+    assert len(issues) == 0

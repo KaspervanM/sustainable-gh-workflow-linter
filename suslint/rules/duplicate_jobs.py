@@ -21,6 +21,15 @@ def _job_signature(job: CommentedMap) -> tuple[str, ...]:
     """
     signature: list[str] = []
 
+    # include runs-on
+    runs_on = job.get("runs-on")
+    if isinstance(runs_on, str):
+        signature.append(f"runs-on:{_normalize(runs_on)}")
+    elif isinstance(runs_on, list):
+        signature.append(
+            "runs-on:" + ",".join(_normalize(x) for x in runs_on if isinstance(x, str))
+        )
+
     for _, step in iter_steps(job):
         run_text = step_run_text(step)
         if run_text:
@@ -57,7 +66,7 @@ class DuplicateJobsRule:
 
         for job_name, job in iter_jobs(workflow):
             sig = _job_signature(job)
-            if sig:
+            if len(sig) > 1:
                 signature_to_jobs[sig].append(job_name)
 
         for job_names in signature_to_jobs.values():
