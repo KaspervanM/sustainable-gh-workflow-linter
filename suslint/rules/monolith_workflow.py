@@ -21,7 +21,7 @@ def _is_small_job(job: CommentedMap) -> bool:
     return _count_steps(job) < 3
 
 
-def _is_sequential(prev_job: CommentedMap, job: CommentedMap) -> bool:
+def _is_sequential(prev_job: str, job: CommentedMap) -> bool:
     needs = job.get("needs")
 
     if isinstance(needs, str):

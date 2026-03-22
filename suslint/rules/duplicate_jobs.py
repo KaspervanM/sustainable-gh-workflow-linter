@@ -14,7 +14,7 @@ def _normalize(value: str) -> str:
     return " ".join(value.lower().split())
 
 
-def _job_signature(job: CommentedMap) -> tuple:
+def _job_signature(job: CommentedMap) -> tuple[str, ...]:
     """
     Create a comparable signature for a job based on its steps.
     Includes both `run` commands and `uses` actions.
@@ -53,7 +53,7 @@ class DuplicateJobsRule:
         if not isinstance(jobs, CommentedMap):
             return
 
-        signature_to_jobs: dict[tuple, list[str]] = defaultdict(list)
+        signature_to_jobs: dict[tuple[str, ...], list[str]] = defaultdict(list)
 
         for job_name, job in iter_jobs(workflow):
             sig = _job_signature(job)
