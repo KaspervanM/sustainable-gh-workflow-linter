@@ -1137,20 +1137,10 @@
           <div class="install-section">
             <div class="install-header">Installation</div>
             <div class="install-tabs" role="tablist">
-              <button class="install-tab active" data-tab="tab-pip" role="tab" aria-selected="true">pip</button>
-              <button class="install-tab" data-tab="tab-binary" role="tab" aria-selected="false">Binary</button>
+              <button class="install-tab active" data-tab="tab-binary" role="tab" aria-selected="true">Binary</button>
               <button class="install-tab" data-tab="tab-nix" role="tab" aria-selected="false">Nix</button>
             </div>
-            <div class="install-panel active" id="tab-pip">
-              <code>
-                <span class="install-comment"># Requires Python 3.11+</span><br>
-                <span class="install-cmd">pip install</span> sustainable-gh-workflow-linter<br>
-                <br>
-                <span class="install-comment"># Run it</span><br>
-                <span class="install-cmd">suslint</span> .github/workflows/
-              </code>
-            </div>
-            <div class="install-panel" id="tab-binary">
+            <div class="install-panel active" id="tab-binary">
               <code>
                 <span class="install-comment"># Download the binary for your platform from Releases</span><br>
                 <span class="install-cmd">curl -L</span> -o suslint \<br>
@@ -1291,11 +1281,37 @@
 
     const RULES = [{
         category: "Runner Efficiency",
-        icon: "clock",
+        icon: "archive",
         id: "SUS001",
         severity: "warning",
+        title: "Cache Dependencies",
+        description: "Installing dependencies without caching causes repeated downloads and longer CI times.",
+        remediation: "Use actions/cache or enable built-in caching in setup actions (e.g., setup-node, setup-python, setup-java, ruby/setup-ruby).",
+        before: `jobs:
+        build:
+          runs-on: ubuntu-latest
+          steps:
+            - uses: actions/checkout@v4
+            - run: npm install
+            - run: npm test`,
+        after: `jobs:
+        build:
+          runs-on: ubuntu-latest
+          steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                node-version: 18
+                cache: npm
+            - run: npm ci
+            - run: npm test`
+      },{
+        category: "Runner Efficiency",
+        icon: "clock",
+        id: "SUS002",
+        severity: "warning",
         title: "Set Job Timeouts",
-        description: "Jobs without timeout-minutes can run indefinitely...",
+        description: "Jobs without timeout-minutes may run up to 6 hours, wasting CI minutes and resources if they hang or stall.",
         remediation: "Add timeout-minutes to every job.",
         before: `jobs:
   build:
@@ -1310,24 +1326,7 @@
     steps:
       - uses: actions/checkout@v4
       - run: npm test`
-    },
-
-      {
-        category: "Trigger Optimization",
-        icon: "branch",
-        id: "SUS002",
-        severity: "warning",
-        title: "Filter Branch Triggers",
-        description: "Push without branch filters runs on every branch...",
-        remediation: "Add branches or branches-ignore.",
-        before: `on:
-  push:
-  workflow_dispatch:`,
-        after: `on:
-  push:
-    branches: [main, develop]
-  workflow_dispatch:`
-      }, {
+    },{
       category: "Trigger Scope",
       icon: "git-branch",
       id: "SUS003",
