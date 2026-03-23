@@ -30,12 +30,6 @@ include = ["suslint*"]
 
 
 [tool.mypy]
-ignore_missing_imports = true
 warn_unused_configs = true
 strict = true
 check_untyped_defs = true
-
-disallow_untyped_calls = false
-disallow_untyped_defs = false
-warn_unused_ignores = true
-warn_redundant_casts = true

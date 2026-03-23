@@ -10,6 +10,7 @@ from ruamel.yaml.comments import CommentedMap
 from ruamel.yaml.error import YAMLError
 
 from suslint.rule import Issue, Rule
+from suslint.ignore_comments import get_line_ignores
 
 
 class LintError(Exception):
@@ -49,10 +50,20 @@ def lint(path: Path, rules: Iterable[Rule]) -> list[Issue]:
     if not isinstance(workflow, CommentedMap):
         raise LintError("workflow file must contain a mapping at the top level")
 
+    line_ignores = get_line_ignores(workflow)
+
     issues: list[Issue] = []
 
     for rule in rules:
-        issues.extend(rule.check(workflow))
+        potential_issues = rule.check(workflow)
+        for potential_issue in potential_issues:
+            line = 0
+            location = potential_issue.location
+            if location:
+                line = location.line
+            ignores = line_ignores.get(line, [])
+            if potential_issue.rule_id not in ignores:
+                issues.append(potential_issue)
 
     return issues
 
