@@ -2,3 +2,6 @@
 **__pycache__/
 result
 sustainable_gh_workflow_linter.egg-info/
+build/
+.mypy_cache/
+.pytest_cache/

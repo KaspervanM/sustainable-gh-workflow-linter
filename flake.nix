@@ -58,6 +58,15 @@
             pkgs.python3Packages.mypy
             pkgs.python3Packages.pytest
           ];
+
+          shellHook = ''
+            if [ ! -d .venv ]; then
+              python -m venv .venv
+            fi
+            source .venv/bin/activate
+
+            pip install -e .[dev]
+          '';
         };
       }
     );
