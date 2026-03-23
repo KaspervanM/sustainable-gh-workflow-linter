@@ -936,6 +936,19 @@
       background: rgba(0, 240, 160, 0.2);
       color: var(--text-primary);
     }
+
+    .rule-category-badge {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px;
+      margin-left: auto;
+    }
+
+    .rule-card:not(:last-child) {
+      margin-bottom: 1.5rem;
+    }
   </style>
 </head>
 <body>
@@ -1036,104 +1049,7 @@
         </p>
       </div>
 
-      <!-- Category: Runner Efficiency -->
-      <div class="rule-category reveal" style="transition-delay: 0.1s;">
-        <div class="category-header">
-          <div class="category-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"/>
-              <path d="M12 6v6l4 2"/>
-            </svg>
-          </div>
-          <h3 class="category-title">Runner Efficiency</h3>
-        </div>
-
-        <div class="rule-card">
-          <div class="rule-header">
-            <span class="rule-badge">SUS001</span>
-            <span class="rule-severity">warning</span>
-          </div>
-          <h4 class="rule-title">Set Job Timeouts</h4>
-          <p class="rule-description">
-            Jobs without <code style="color:var(--accent); background:var(--accent-subtle); padding:0.1em 0.4em; border-radius:4px; font-family:var(--font-mono); font-size:0.88em;">timeout-minutes</code> can run indefinitely when stuck &mdash; a hung test suite, a dangling network call, a zombie process.
-            That's compute and energy burned for nothing. A simple timeout ensures stuck runners get terminated promptly, freeing shared infrastructure and saving real watts.
-          </p>
-          <div class="rule-remediation">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
-            Add <code style="font-family:var(--font-mono); font-size:0.9em;">timeout-minutes</code> to every job definition.
-          </div>
-          <div class="code-comparison">
-            <div class="code-panel code-before">
-              <span class="code-label">Before</span>
-              <pre><code><span class="hl-key">jobs</span>:
-  <span class="hl-key">build</span>:
-    <span class="hl-key">runs-on</span>: <span class="hl-val">ubuntu-latest</span>
-    <span class="hl-key">steps</span>:
-      - <span class="hl-key">uses</span>: <span class="hl-str">actions/checkout@v4</span>
-      - <span class="hl-key">run</span>: <span class="hl-str">npm test</span>
-    <span class="hl-comment"># no timeout — runner could hang forever</span></code></pre>
-            </div>
-            <div class="code-panel code-after">
-              <span class="code-label">After</span>
-              <pre><code><span class="hl-key">jobs</span>:
-  <span class="hl-key">build</span>:
-    <span class="hl-key">runs-on</span>: <span class="hl-val">ubuntu-latest</span>
-<span class="line-add">    <span class="hl-key">timeout-minutes</span>: <span class="hl-val">10</span></span>    <span class="hl-key">steps</span>:
-      - <span class="hl-key">uses</span>: <span class="hl-str">actions/checkout@v4</span>
-      - <span class="hl-key">run</span>: <span class="hl-str">npm test</span></code></pre>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Category: Trigger Optimization -->
-      <div class="rule-category reveal" style="transition-delay: 0.2s;">
-        <div class="category-header">
-          <div class="category-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="6" y1="3" x2="6" y2="15"/>
-              <circle cx="18" cy="6" r="3"/>
-              <circle cx="6" cy="18" r="3"/>
-              <path d="M18 9a9 9 0 0 1-9 9"/>
-            </svg>
-          </div>
-          <h3 class="category-title">Trigger Optimization</h3>
-        </div>
-
-        <div class="rule-card">
-          <div class="rule-header">
-            <span class="rule-badge">SUS002</span>
-            <span class="rule-severity">warning</span>
-          </div>
-          <h4 class="rule-title">Filter Branch Triggers</h4>
-          <p class="rule-description">
-            A <code style="color:var(--accent); background:var(--accent-subtle); padding:0.1em 0.4em; border-radius:4px; font-family:var(--font-mono); font-size:0.88em;">push</code> trigger without branch filters fires on every push to every branch &mdash; feature branches, experiments, typo fixes.
-            That means full CI runs for changes that may never reach production. Restrict triggers to the branches that matter and you'll eliminate a huge volume of unnecessary builds.
-          </p>
-          <div class="rule-remediation">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg>
-            Add <code style="font-family:var(--font-mono); font-size:0.9em;">branches</code> or <code style="font-family:var(--font-mono); font-size:0.9em;">branches-ignore</code> filters to push triggers.
-          </div>
-          <div class="code-comparison">
-            <div class="code-panel code-before">
-              <span class="code-label">Before</span>
-              <pre><code><span class="hl-key">on</span>:
-  <span class="hl-key">push</span>:
-  <span class="hl-key">workflow_dispatch</span>:
-
-<span class="hl-comment"># triggers on every push to every branch</span></code></pre>
-            </div>
-            <div class="code-panel code-after">
-              <span class="code-label">After</span>
-              <pre><code><span class="hl-key">on</span>:
-  <span class="hl-key">push</span>:
-<span class="line-add">    <span class="hl-key">branches</span>: [<span class="hl-str">main</span>, <span class="hl-str">develop</span>]</span>  <span class="hl-key">workflow_dispatch</span>:
-
-<span class="hl-comment"># only triggers on relevant branches</span></code></pre>
-            </div>
-          </div>
-        </div>
-      </div>
+      <div id="rules-root"></div>
 
     </div>
   </section>
@@ -1221,20 +1137,10 @@
           <div class="install-section">
             <div class="install-header">Installation</div>
             <div class="install-tabs" role="tablist">
-              <button class="install-tab active" data-tab="tab-pip" role="tab" aria-selected="true">pip</button>
-              <button class="install-tab" data-tab="tab-binary" role="tab" aria-selected="false">Binary</button>
+              <button class="install-tab active" data-tab="tab-binary" role="tab" aria-selected="true">Binary</button>
               <button class="install-tab" data-tab="tab-nix" role="tab" aria-selected="false">Nix</button>
             </div>
-            <div class="install-panel active" id="tab-pip">
-              <code>
-                <span class="install-comment"># Requires Python 3.11+</span><br>
-                <span class="install-cmd">pip install</span> sustainable-gh-workflow-linter<br>
-                <br>
-                <span class="install-comment"># Run it</span><br>
-                <span class="install-cmd">suslint</span> .github/workflows/
-              </code>
-            </div>
-            <div class="install-panel" id="tab-binary">
+            <div class="install-panel active" id="tab-binary">
               <code>
                 <span class="install-comment"># Download the binary for your platform from Releases</span><br>
                 <span class="install-cmd">curl -L</span> -o suslint \<br>
@@ -1372,6 +1278,359 @@
         ticking = true;
       }
     });
+
+    const RULES = [{
+        category: "Runner Efficiency",
+        icon: "archive",
+        id: "SUS001",
+        severity: "warning",
+        title: "Cache Dependencies",
+        description: "Installing dependencies without caching causes repeated downloads and longer CI times.",
+        remediation: "Use actions/cache or enable built-in caching in setup actions (e.g., setup-node, setup-python, setup-java, ruby/setup-ruby).",
+        before: `jobs:
+        build:
+          runs-on: ubuntu-latest
+          steps:
+            - uses: actions/checkout@v4
+            - run: npm install
+            - run: npm test`,
+        after: `jobs:
+        build:
+          runs-on: ubuntu-latest
+          steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                node-version: 18
+                cache: npm
+            - run: npm ci
+            - run: npm test`
+      },{
+        category: "Runner Efficiency",
+        icon: "clock",
+        id: "SUS002",
+        severity: "warning",
+        title: "Set Job Timeouts",
+        description: "Jobs without timeout-minutes may run up to 6 hours, wasting CI minutes and resources if they hang or stall.",
+        remediation: "Add timeout-minutes to every job.",
+        before: `jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm test`,
+        after: `jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm test`
+    },{
+      category: "Trigger Scope",
+      icon: "git-branch",
+      id: "SUS003",
+      severity: "warning",
+      title: "Avoid Triggering on All Branches",
+      description: "Workflows triggered on push without branch filters run on every branch, increasing unnecessary CI usage and energy consumption.",
+      remediation: "Restrict push triggers using branches or branches-ignore filters to only run when needed.",
+      before: `on:
+      push:
+
+    jobs:
+      build:
+        runs-on: ubuntu-latest
+        steps:
+          - uses: actions/checkout@v4
+          - run: npm test`,
+      after: `on:
+      push:
+        branches:
+          - main
+          - develop
+
+    jobs:
+      build:
+        runs-on: ubuntu-latest
+        steps:
+          - uses: actions/checkout@v4
+          - run: npm test`
+    }, {
+  category: "Runner Efficiency",
+  icon: "copy",
+  id: "SUS004",
+  severity: "warning",
+  title: "Duplicate Jobs",
+  description: "Jobs with identical steps are executed multiple times unnecessarily, increasing CI runtime and resource usage.",
+  remediation: "Merge duplicate jobs or reuse logic (e.g., via matrices or reusable workflows) to avoid redundant execution.",
+  before: `jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install
+      - run: npm test
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install
+      - run: npm test`,
+  after: `jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install
+      - run: npm test`
+},
+            {
+  category: "Runner Efficiency",
+  icon: "package",
+  id: "SUS005",
+  severity: "warning",
+  title: "Reuse Build Artifacts",
+  description: "Rebuilding the same project in multiple jobs wastes CI time and resources. Instead, build once and reuse the output via artifacts.",
+  remediation: "Upload build outputs in one job and download them in subsequent jobs using actions/upload-artifact and actions/download-artifact.",
+  before: `jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install
+      - run: npm run build
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install
+      - run: npm run build
+      - run: npm test`,
+  after: `jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: dist/
+
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-output
+      - run: npm test`
+},{
+  category: "Runner Efficiency",
+  icon: "git-merge",
+  id: "SUS006",
+  severity: "warning",
+  title: "Avoid Unnecessary Job Serialization",
+  description: "Jobs that use 'needs' without actually depending on outputs or artifacts from earlier jobs are unnecessarily serialized, increasing total workflow runtime.",
+  remediation: "Remove unnecessary needs dependencies so independent jobs can run in parallel. Only keep needs when consuming artifacts, outputs, or required results.",
+  before: `jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: npm run build
+
+  lint:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - run: npm run lint
+
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - run: npm test`,
+  after: `jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: npm run build
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - run: npm run lint
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: npm test`
+},{
+  category: "Runner Efficiency",
+  icon: "git-pull-request",
+  id: "SUS007",
+  severity: "warning",
+  title: "Use Shallow Clones",
+  description: "Fetching full git history is unnecessary for most workflows and increases checkout time and data usage.",
+  remediation: "Set with.fetch-depth: 1 on actions/checkout steps unless full history is explicitly required.",
+  before: `jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install
+      - run: npm test`,
+  after: `jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - run: npm install
+      - run: npm test`
+},{
+  category: "Runner Efficiency",
+  icon: "layers",
+  id: "SUS008",
+  severity: "warning",
+  title: "Merge Small Sequential Jobs",
+  description: "Small jobs that run sequentially on the same runner introduce unnecessary startup overhead and increase CI time.",
+  remediation: "Merge small sequential jobs that run on the same environment into a single job to reduce runner initialization overhead.",
+  before: `jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - run: npm install
+
+  build:
+    runs-on: ubuntu-latest
+    needs: install
+    steps:
+      - run: npm run build
+
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - run: npm test`,
+  after: `jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: npm install
+      - run: npm run build
+      - run: npm test`
+},{
+  category: "Runner Efficiency",
+  icon: "grid",
+  id: "SUS009",
+  severity: "warning",
+  title: "Limit Matrix Size",
+  description: "Large matrix builds create many job combinations, increasing CI time and resource usage unnecessarily.",
+  remediation: "Reduce matrix combinations to only what is necessary or move rarely used configurations to separate workflows.",
+  before: `jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [16, 18, 20]
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm test`,
+  after: `jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [18]
+        os: [ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm test`
+},{
+  category: "Runner Efficiency",
+  icon: "refresh-cw",
+  id: "SUS010",
+  severity: "warning",
+  title: "Prevent Duplicate Concurrent Runs",
+  description: "Without concurrency control, multiple workflow runs (e.g., rapid pushes) can execute in parallel, wasting CI resources.",
+  remediation: "Add concurrency with a group and cancel-in-progress to ensure only the latest run continues.",
+  before: `on:
+  push:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: npm test`,
+  after: `on:
+  push:
+
+concurrency:
+  group: ci-\${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: npm test`
+}
+    ];
+    function renderRules() {
+      const root = document.getElementById("rules-root");
+      root.innerHTML = "";
+
+      RULES.forEach((rule, i) => {
+        const el = document.createElement("div");
+        el.className = "rule-card reveal";
+        el.style.transitionDelay = `${i * 0.05}s`;
+
+        el.innerHTML = `
+          <div class="rule-header">
+            <span class="rule-badge">${rule.id}</span>
+            <span class="rule-severity">${rule.severity}</span>
+            <span class="rule-category-badge">${rule.category}</span>
+          </div>
+
+          <h4 class="rule-title">${rule.title}</h4>
+
+          <p class="rule-description">${rule.description}</p>
+
+          <div class="rule-remediation">
+            ✔ ${rule.remediation}
+          </div>
+
+          <div class="code-comparison">
+            <div class="code-panel code-before">
+              <span class="code-label">Before</span>
+              <pre><code>${escapeHtml(rule.before)}</code></pre>
+            </div>
+            <div class="code-panel code-after">
+              <span class="code-label">After</span>
+              <pre><code>${escapeHtml(rule.after)}</code></pre>
+            </div>
+          </div>
+        `;
+
+        root.appendChild(el);
+      });
+
+      document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+    }
+    function escapeHtml(str) {
+      return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    renderRules();
   </script>
 </body>
 </html>
