@@ -1547,7 +1547,7 @@ jobs:
   severity: "warning",
   title: "Use Shallow Clones",
   description: "Fetching full git history is unnecessary for most workflows and increases checkout time and data usage.",
-  remediation: "Set with.fetch-depth: 1 on actions/checkout steps unless full history is explicitly required.",
+  remediation: "Set with fetch-depth: 1 on actions/checkout steps unless full history is explicitly required.",
   before: `jobs:
   build:
     runs-on: ubuntu-latest
