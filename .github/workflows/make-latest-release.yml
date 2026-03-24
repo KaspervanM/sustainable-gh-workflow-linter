@@ -57,7 +57,7 @@ jobs:
     needs:
       - get-version
       - release-version
-    if: ${{ needs.get-version.outputs.is-new == 'true' }}
+    if: ${{ needs.get-version.outputs.version }}
     uses: ./.github/workflows/build-and-release-binaries.yml
     with:
       version: ${{ needs.get-version.outputs.version }}
