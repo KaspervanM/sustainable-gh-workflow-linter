@@ -835,6 +835,10 @@
       color: var(--text-primary);
       display: block;
       line-height: 1.8;
+
+      white-space: pre;
+      overflow-x: auto;
+      word-break: normal;
     }
 
     .install-panel .install-comment {
@@ -1135,25 +1139,89 @@
 
           <!-- Install section -->
           <div class="install-section">
-            <div class="install-header">Installation</div>
+            <div class="install-header">How to install</div>
+
             <div class="install-tabs" role="tablist">
               <button class="install-tab active" data-tab="tab-binary" role="tab" aria-selected="true">Binary</button>
+              <button class="install-tab" data-tab="tab-pip" role="tab" aria-selected="false">pip</button>
               <button class="install-tab" data-tab="tab-nix" role="tab" aria-selected="false">Nix</button>
             </div>
-            <div class="install-panel active" id="tab-binary">
+
+            <!-- Binary -->
+            <div class="install-panel tab-panel active" id="tab-binary">
               <code>
-                <span class="install-comment"># Download the binary for your platform from Releases</span><br>
-                <span class="install-cmd">curl -L</span> -o suslint \<br>
-                &nbsp;&nbsp;https://github.com/KaspervanM/sustainable-gh-workflow-linter/releases/latest<br>
-                <span class="install-cmd">chmod +x</span> suslint<br>
-                <br>
-                <span class="install-comment"># Available for Linux, macOS, and Windows</span>
+<span class="install-comment"># Option 1 — Download a prebuilt binary (recommended)</span>
+
+<span class="install-comment"># 1. Download from GitHub Releases</span>
+<span class="install-comment"># Choose the correct file for your system:</span>
+<span class="install-comment"># Linux (x86_64):        suslint-x86_64-linux</span>
+<span class="install-comment"># Linux (ARM):           suslint-aarch64-linux</span>
+<span class="install-comment"># macOS (Intel):         suslint-x86_64-darwin</span>
+<span class="install-comment"># macOS (Apple Silicon): suslint-aarch64-darwin</span>
+<span class="install-comment"># Windows:               suslint-x86_64-windows.exe</span>
+
+<span class="install-comment"># 2. Make executable (Linux/macOS)</span>
+<span class="install-cmd">chmod +x</span> suslint-*
+
+<span class="install-comment"># 3. Move to PATH (optional)</span>
+<span class="install-cmd">sudo mv</span> suslint-* /usr/local/bin/suslint
+
+<span class="install-comment"># Run the tool</span>
+<span class="install-cmd">suslint</span>
               </code>
             </div>
-            <div class="install-panel" id="tab-nix">
+
+            <!-- pip -->
+            <div class="install-panel tab-panel" id="tab-pip">
               <code>
-                <span class="install-comment"># Reproducible one-liner</span><br>
-                <span class="install-cmd">nix run</span> github:KaspervanM/sustainable-gh-workflow-linter
+<span class="install-comment"># Option 2 — Install with pip (Python 3.11+ required)</span>
+
+<span class="install-comment"># Clone the repository</span>
+<span class="install-cmd">git clone</span> https://github.com/KaspervanM/sustainable-gh-workflow-linter.git
+<span class="install-cmd">cd</span> sustainable-gh-workflow-linter
+
+<span class="install-comment"># Install globally</span>
+<span class="install-cmd">sudo pip install</span> .
+
+<span class="install-comment"># OR install locally</span>
+<span class="install-cmd">pip install --user</span> .
+
+<span class="install-comment"># OR use a virtual environment</span>
+<span class="install-cmd">python -m venv</span> .venv
+<span class="install-cmd">source</span> .venv/bin/activate
+<span class="install-cmd">python -m pip install</span> .
+
+<span class="install-comment"># Run the tool</span>
+<span class="install-cmd">suslint</span>
+              </code>
+            </div>
+
+            <!-- Nix -->
+            <div class="install-panel tab-panel" id="tab-nix">
+              <code>
+<span class="install-comment"># Option 3 — Use Nix</span>
+
+<span class="install-comment"># Run without installing</span>
+<span class="install-cmd">nix run</span> github:KaspervanM/sustainable-gh-workflow-linter
+
+<span class="install-comment"># Install permanently</span>
+<span class="install-cmd">nix profile install</span> github:KaspervanM/sustainable-gh-workflow-linter
+
+<span class="install-comment"># Build locally</span>
+<span class="install-cmd">nix build</span> github:KaspervanM/sustainable-gh-workflow-linter
+              </code>
+            </div>
+
+            <!-- Verify -->
+          
+            <br><div class="install-header">Verify the installation</div>
+            <div class="install-panel active" style="margin-top: 16px;">
+              <code>
+<span class="install-comment"># Verify installation</span>
+<span class="install-cmd">suslint --help</span>
+
+<span class="install-comment"># If using Nix</span>
+<span class="install-cmd">nix run</span> github:KaspervanM/sustainable-gh-workflow-linter -- --help
               </code>
             </div>
           </div>
@@ -1193,9 +1261,15 @@
           t.classList.remove('active');
           t.setAttribute('aria-selected', 'false');
         });
-        document.querySelectorAll('.install-panel').forEach(p => p.classList.remove('active'));
+
+        // Only hide tab panels, not everything
+        document.querySelectorAll('.tab-panel').forEach(p => {
+          p.classList.remove('active');
+        });
+
         tab.classList.add('active');
         tab.setAttribute('aria-selected', 'true');
+
         document.getElementById(tab.dataset.tab).classList.add('active');
       });
     });
@@ -1288,23 +1362,23 @@
         description: "Installing dependencies without caching causes repeated downloads and longer CI times.",
         remediation: "Use actions/cache or enable built-in caching in setup actions (e.g., setup-node, setup-python, setup-java, ruby/setup-ruby).",
         before: `jobs:
-        build:
-          runs-on: ubuntu-latest
-          steps:
-            - uses: actions/checkout@v4
-            - run: npm install
-            - run: npm test`,
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install
+      - run: npm test`,
         after: `jobs:
-        build:
-          runs-on: ubuntu-latest
-          steps:
-            - uses: actions/checkout@v4
-            - uses: actions/setup-node@v4
-              with:
-                node-version: 18
-                cache: npm
-            - run: npm ci
-            - run: npm test`
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+      - run: npm ci
+      - run: npm test`
       },{
         category: "Runner Efficiency",
         icon: "clock",
@@ -1335,26 +1409,26 @@
       description: "Workflows triggered on push without branch filters run on every branch, increasing unnecessary CI usage and energy consumption.",
       remediation: "Restrict push triggers using branches or branches-ignore filters to only run when needed.",
       before: `on:
-      push:
+  push:
 
-    jobs:
-      build:
-        runs-on: ubuntu-latest
-        steps:
-          - uses: actions/checkout@v4
-          - run: npm test`,
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm test`,
       after: `on:
-      push:
-        branches:
-          - main
-          - develop
+  push:
+    branches:
+      - main
+      - develop
 
-    jobs:
-      build:
-        runs-on: ubuntu-latest
-        steps:
-          - uses: actions/checkout@v4
-          - run: npm test`
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm test`
     }, {
   category: "Runner Efficiency",
   icon: "copy",
@@ -1475,7 +1549,7 @@
   severity: "warning",
   title: "Use Shallow Clones",
   description: "Fetching full git history is unnecessary for most workflows and increases checkout time and data usage.",
-  remediation: "Set with.fetch-depth: 1 on actions/checkout steps unless full history is explicitly required.",
+  remediation: "Set with fetch-depth: 1 on actions/checkout steps unless full history is explicitly required.",
   before: `jobs:
   build:
     runs-on: ubuntu-latest

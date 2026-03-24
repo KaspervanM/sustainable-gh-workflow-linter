@@ -39,10 +39,31 @@ suslint
 
 ### Option 2 — Install with pip (Python)
 
-If you have **Python 3.11 or newer** installed:
+First, make sure you have **Python 3.11 or newer** installed. Next, clone the repository:
 
 ```bash
-pip install sustainable-gh-workflow-linter
+git clone https://github.com/KaspervanM/sustainable-gh-workflow-linter.git
+cd sustainable-gh-workflow-linter
+```
+
+Then, either install globally:
+
+```bash
+sudo pip install .
+```
+
+Or locally:
+
+```bash
+pip install --user .
+```
+
+Or, within a virtual environment:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install .
 ```
 
 This installs the command:
@@ -64,6 +85,14 @@ Or install it permanently:
 ```bash
 nix profile install github:KaspervanM/sustainable-gh-workflow-linter
 ```
+
+Or build it locally:
+
+```bash
+nix build github:KaspervanM/sustainable-gh-workflow-linter
+```
+
+The last method, builds the binary specific to your system architecture. You can move it in your PATH as described in installation option 1.
 
 ### Verify installation
 
@@ -116,71 +145,43 @@ Run:
 nix develop
 ```
 
-This will open a shell with all required dependencies installed (Python, mypy, etc.).
+This will open a shell with all required dependencies installed and automatically does the following:
 
-Alternatively, you can use pip instead of Nix:
 ```bash
-pip install -e .
-pip install mypy
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -e .[dev]
 ```
+
+Alternatively, if you don't use **Nix**, you can run these commands manually.
 
 ### 3. Run the linter locally
 
 Inside the development shell you can run the tool directly:
 
 ```bash
-python3 -m suslint.cli test.yaml
+suslint test.yaml
 ```
 
 Or check the CLI help:
 
 ```bash
-python3 -m suslint.cli --help
+suslint --help
 ```
 
 The CLI also supports directories, glob patterns, JSON output, and rule filtering:
 
 ```bash
-python3 -m suslint.cli .github/workflows
-python3 -m suslint.cli ".github/workflows/*.yml"
-python3 -m suslint.cli --format json test.yaml
-python3 -m suslint.cli --select SUS001 test.yaml
-python3 -m suslint.cli --ignore SUS002 test.yaml
+suslint .github/workflows
+suslint ".github/workflows/*.yml"
+suslint --format json test.yaml
+suslint --select SUS001 test.yaml
+suslint --ignore SUS002 test.yaml
 ```
 
 Text output includes a short summary line with the total number of issues and affected files.
 
-### 4. Type checking
-
-The project uses **mypy** for static type checking.
-
-Run:
-
-```bash
-mypy suslint
-```
-
-### 5. Build the executable
-
-To build the packaged application using Nix:
-
-```bash
-nix build
-```
-
-The resulting executable will appear in:
-
-```
-./result/bin/suslint
-```
-
-You can run it with:
-
-```bash
-./result/bin/suslint test.yaml
-```
-
-### 6. Adding a new lint rule
+### 4. Adding a new lint rule
 
 Rules live in:
 
@@ -198,9 +199,7 @@ Example:
 
 ```python
 from typing import Iterable
-
 from ruamel.yaml.comments import CommentedMap
-
 from suslint.rule import Issue, RuleMetadata
 
 
@@ -236,17 +235,28 @@ When writing a rule:
 
 </details>
 
-### 7. Testing your rule
+### 5. Type checking
+
+The project uses **mypy** for static type checking.
+
+Run:
+
+```bash
+mypy suslint
+```
+
+### 6. Testing your rule
 
 For small tests during development, consider creating or modifying a workflow file (for example `test.yaml`) and run:
 
 ```bash
-python3 -m suslint.cli test.yaml
+suslint test.yaml
 ```
 
 For more rigorous testing and testing before deployment, write unit tests in `tests/`. Run the tests with:
-```bsh
-python -m pytest
+
+```bash
+pytest
 ```
 
 ## Contributing
@@ -267,3 +277,5 @@ GitHub Actions automate versioning, building, and releasing the linter based on 
   * `feat` --> minor
   * `fix`/`perf` --> patch
 * Pre-release branches increment only the pre-release number if no new changes relative to `main` exist.
+
+*Note that this applies only to the linter. Commits to the website should also follow, conventional commit messages, but **NOT*** `BREAKING CHANGE`*,* `!`*,* `feat`*,* `fix` *or* `perf`*. The tool version should depend on the linter only, not the website.*
