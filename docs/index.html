@@ -1360,23 +1360,23 @@
         description: "Installing dependencies without caching causes repeated downloads and longer CI times.",
         remediation: "Use actions/cache or enable built-in caching in setup actions (e.g., setup-node, setup-python, setup-java, ruby/setup-ruby).",
         before: `jobs:
-        build:
-          runs-on: ubuntu-latest
-          steps:
-            - uses: actions/checkout@v4
-            - run: npm install
-            - run: npm test`,
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install
+      - run: npm test`,
         after: `jobs:
-        build:
-          runs-on: ubuntu-latest
-          steps:
-            - uses: actions/checkout@v4
-            - uses: actions/setup-node@v4
-              with:
-                node-version: 18
-                cache: npm
-            - run: npm ci
-            - run: npm test`
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+      - run: npm ci
+      - run: npm test`
       },{
         category: "Runner Efficiency",
         icon: "clock",
@@ -1407,26 +1407,26 @@
       description: "Workflows triggered on push without branch filters run on every branch, increasing unnecessary CI usage and energy consumption.",
       remediation: "Restrict push triggers using branches or branches-ignore filters to only run when needed.",
       before: `on:
-      push:
+  push:
 
-    jobs:
-      build:
-        runs-on: ubuntu-latest
-        steps:
-          - uses: actions/checkout@v4
-          - run: npm test`,
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm test`,
       after: `on:
-      push:
-        branches:
-          - main
-          - develop
+  push:
+    branches:
+      - main
+      - develop
 
-    jobs:
-      build:
-        runs-on: ubuntu-latest
-        steps:
-          - uses: actions/checkout@v4
-          - run: npm test`
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm test`
     }, {
   category: "Runner Efficiency",
   icon: "copy",
