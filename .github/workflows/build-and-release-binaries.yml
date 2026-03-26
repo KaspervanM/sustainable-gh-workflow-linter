@@ -61,7 +61,7 @@ jobs:
       - name: Build binary
         shell: bash
         run: |
-          pyinstaller --onefile --name suslint suslint/cli.py
+          pyinstaller --onefile --name suslint --additional-hooks-dir=hooks suslint/cli.py
           mv dist/suslint dist/suslint-${{ matrix.system }}
 
       - name: Ensure GitHub release exists
